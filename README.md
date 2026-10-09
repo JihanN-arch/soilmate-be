@@ -9,7 +9,7 @@ pip install -r requirements.txt
 export DATABASE_URL=sqlite:///db.sqlite3 DJANGO_SECRET_KEY=dev DJANGO_DEBUG=True DJANGO_ALLOWED_HOSTS=*
 python manage.py migrate
 python manage.py seed_crop
-python manage.py test recommendation      # 43 tes, semua API eksternal di-mock
+python manage.py test recommendation      # 45 tes, semua API eksternal di-mock
 python manage.py runserver
 ```
 
@@ -157,6 +157,7 @@ Respons: `ph_awal`, `ph_baru`, `kebutuhan_kapur {dosis_ton_ha, luas_lahan_m2, to
 python manage.py precompute_statis --bbox MIN_LON MIN_LAT MAX_LON MAX_LAT --step 0.02 [--sumber tanah iklim satelit] [--dry-run]
 python manage.py cek_sumber [--lat -7.05 --lon 110.92]   # diagnosis: tiap API berhasil/gagal + berapa detik
 python manage.py update_monitoring          # cron harian
+python manage.py muat_data_ekonomi            # muat data/harga_produsen_bps.csv & data/biaya_produksi_bps.csv (aman diulang)
 python manage.py import_harga harga.csv --sumber "Panel Harga Bapanas"
 python manage.py rekap_usability --sejak 2026-10-08 --csv rekap.csv   # per tugas & per peserta, hanya mode_tes
 ```

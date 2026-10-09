@@ -2,7 +2,7 @@ from django.urls import path
 
 from . import views
 
-urlpatterns = [
+_rute = [
     # rekomendasi
     path('recommend/', views.recommend),
     path('analisis/', views.analisis_mulai),
@@ -28,3 +28,7 @@ urlpatterns = [
     path('feedback/', views.feedback),
     path('usability/log/', views.log_usability),
 ]
+
+# Terima alamat dengan DAN tanpa garis miring di akhir. Tanpa ini, POST ke
+# mis. /api/usability/log (tanpa "/") dialihkan Django dan datanya hilang.
+urlpatterns = _rute + [path(r.pattern._route.rstrip("/"), r.callback) for r in _rute]

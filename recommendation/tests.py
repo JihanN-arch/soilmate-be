@@ -182,13 +182,17 @@ class EkonomiTes(DasarTes):
 
     def test_estimasi_kosong_lalu_lengkap(self):
         jagung = Crop.objects.get(slug="jagung")
-        self.assertFalse(ekonomi.estimasi(jagung)["tersedia"])
-        jagung.biaya_produksi_per_ha = 15_000_000
-        jagung.save()
+        self.assertEqual(ekonomi.estimasi(jagung)["status"], "belum_tersedia")
         HargaKomoditas.objects.create(crop=jagung, tanggal=date(2026, 9, 1), harga_per_kg=5000)
         HargaKomoditas.objects.create(crop=jagung, tanggal=date(2026, 10, 1), harga_per_kg=5500)
         e = ekonomi.estimasi(jagung)
+        self.assertEqual((e["status"], e["tersedia"]), ("pendapatan_saja", False))
+        self.assertIsNotNone(e["estimasi_pendapatan_per_ha"])
+        jagung.biaya_produksi_per_ha = 15_000_000
+        jagung.save()
+        e = ekonomi.estimasi(jagung)
         self.assertTrue(e["tersedia"])
+        self.assertEqual(e["status"], "lengkap")
         self.assertEqual(e["estimasi_pendapatan_per_ha"], {"min": 27_500_000, "max": 38_500_000})
         self.assertEqual(e["estimasi_keuntungan_per_ha"]["min"], 12_500_000)
         self.assertEqual(e["perubahan_harga_30_hari_persen"], 10.0)
@@ -596,3 +600,36 @@ class TanahViaGeeTes(DasarTes):
         with patch.object(gee, "_dengan_retry", return_value=mentah):
             d = gee.fetch_tanah(LAT, LON)
         self.assertEqual((d["ph"], d["clay"], d["organic_carbon"], d["nitrogen"]), (5.4, 35.0, 14.0, 1.5))
+
+
+class GarisMiringTes(DasarTes):
+    def test_tanpa_garis_miring(self):
+        r = self.api.post("/api/usability/log", {"sesi_id": "s", "event": "halaman_dibuka"}, format="json")
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(self.api.get("/api/riwayat?anonymous_id=a").status_code, 200)
+        self.assertEqual(self.api.get("/api/lahan?anonymous_id=a&status=aktif").status_code, 200)
+        self.assertEqual(self.api.get("/api/ekonomi/jagung").status_code, 200)
+        self.assertEqual(self.api.get("/api/ekonomi/jagung/").status_code, 200)
+
+
+class DataEkonomiTes(DasarTes):
+    def test_muat_data_ekonomi(self):
+        call_command("muat_data_ekonomi", stdout=open("/dev/null", "w"))
+        call_command("muat_data_ekonomi", stdout=open("/dev/null", "w"))  # aman diulang
+        self.assertGreater(HargaKomoditas.objects.count(), 9_000)
+        self.assertEqual(HargaKomoditas.objects.filter(crop_id="jagung", wilayah_kode="00").count(), 36)
+
+        jagung = Crop.objects.get(slug="jagung")
+        self.assertEqual((jagung.biaya_produksi_per_ha, jagung.tahun_biaya), (10_197_140, 2017))
+        e = ekonomi.estimasi(jagung, 2500)
+        self.assertEqual(e["status"], "lengkap")
+        self.assertEqual(e["wilayah_harga"], "Indonesia")
+        self.assertEqual(e["tanggal_harga"], "2024-12-01")
+        self.assertIn("tahun 2017", e["catatan"])
+        self.assertEqual(len(ekonomi.tren_harga(jagung)), 12)
+
+        self.assertEqual(ekonomi.estimasi(Crop.objects.get(slug="cabai_rawit"))["status"], "pendapatan_saja")
+        singkong = ekonomi.estimasi(Crop.objects.get(slug="singkong"))
+        self.assertEqual((singkong["harga_per_kg"], singkong["tanggal_harga"]), (1350, "2025-01-31"))
+        self.assertFalse(HargaKomoditas.objects.filter(crop_id="singkong", sumber__startswith="BPS").exists())
+        self.assertEqual(ekonomi.estimasi(Crop.objects.get(slug="sorgum"))["status"], "belum_tersedia")
