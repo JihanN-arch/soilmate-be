@@ -5,6 +5,7 @@ dan asal setiap nilai dicatat di `sumber_data` supaya FE bisa menampilkan
 badge "terukur / estimasi / cadangan" dan peringatan kalau perlu.
 """
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from django.conf import settings
@@ -59,12 +60,15 @@ def resolve_satelit(lat, lon):
 def _jalankan(nama, fn, progres, *args):
     if progres:
         progres(nama, "berjalan")
+    mulai = time.monotonic()
     try:
         hasil = fn(*args)
+        logger.info("Sumber %s: %s dalam %.1f s", nama, hasil[1], time.monotonic() - mulai)
         if progres:
             progres(nama, "selesai" if hasil[1] in ("api", "cache", "uji_tanah") else "cadangan")
         return hasil, None
     except (SumberDataGagal, DataTidakLengkap) as e:
+        logger.warning("Sumber %s: GAGAL dalam %.1f s: %s", nama, time.monotonic() - mulai, e)
         if progres:
             progres(nama, "gagal")
         return None, e

@@ -542,3 +542,22 @@ class PengapuranContohTes(DasarTes):
                                                        "target_ph": 6.0}, format="json")
         self.assertEqual(r.status_code, 200, r.content)
         self.assertFalse(r.json()["mode_contoh"])
+
+
+class GeeKredensialTes(TestCase):
+    def test_tanpa_kredensial_gagal_cepat_tanpa_retry(self):
+        import time as _t
+        from .services.apis import gee
+        with patch.dict("os.environ", {"GEE_SERVICE_ACCOUNT_KEY_JSON": "", "GEE_SERVICE_ACC_EMAIL": "",
+                                       "GEE_SERVICE_ACC_KEY_PATH": ""}), \
+                patch.object(gee, "_siap", False):
+            mulai = _t.monotonic()
+            with self.assertRaises(gee.KredensialGeeBermasalah):
+                gee.fetch_satelit(LAT, LON)
+        self.assertLess(_t.monotonic() - mulai, 0.5)
+
+    def test_json_rusak_pesan_jelas(self):
+        from .services.apis import gee
+        with patch.dict("os.environ", {"GEE_SERVICE_ACCOUNT_KEY_JSON": "{"}), patch.object(gee, "_siap", False):
+            with self.assertRaisesRegex(gee.KredensialGeeBermasalah, "tidak valid"):
+                gee.fetch_satelit(LAT, LON)

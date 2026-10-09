@@ -1,1 +1,1 @@
-web: gunicorn nusacrop_backend.wsgi --workers 2 --threads 4 --timeout 120
+web: gunicorn nusacrop_backend.wsgi

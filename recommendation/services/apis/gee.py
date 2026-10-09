@@ -21,8 +21,18 @@ logger = logging.getLogger(__name__)
 
 S2 = "COPERNICUS/S2_SR_HARMONIZED"
 DEM = "USGS/SRTMGL1_003"
-PERCOBAAN = 3
+PERCOBAAN = 2
+BATAS_WAKTU_MS = 20_000
 _siap = False
+
+
+class KredensialGeeBermasalah(SumberDataGagal):
+    """Tidak perlu dicoba ulang: masalahnya konfigurasi, bukan jaringan."""
+
+
+def kredensial_tersedia():
+    return bool(os.getenv("GEE_SERVICE_ACCOUNT_KEY_JSON")) or bool(
+        os.getenv("GEE_SERVICE_ACC_EMAIL") and os.getenv("GEE_SERVICE_ACC_KEY_PATH"))
 
 
 def _ee():
@@ -30,16 +40,25 @@ def _ee():
     import ee
     if _siap:
         return ee
-    key_json = os.getenv("GEE_SERVICE_ACCOUNT_KEY_JSON")
-    if key_json:
-        email = json.loads(key_json)["client_email"]
-        cred = ee.ServiceAccountCredentials(email, key_data=key_json)
-    else:
-        cred = ee.ServiceAccountCredentials(
-            os.getenv("GEE_SERVICE_ACC_EMAIL"), os.getenv("GEE_SERVICE_ACC_KEY_PATH"))
-    ee.Initialize(cred)
+    if not kredensial_tersedia():
+        raise KredensialGeeBermasalah(
+            "Kredensial GEE belum diatur (env GEE_SERVICE_ACCOUNT_KEY_JSON kosong).")
     try:
-        ee.data.setDeadline(30_000)  # ms
+        key_json = os.getenv("GEE_SERVICE_ACCOUNT_KEY_JSON")
+        if key_json:
+            email = json.loads(key_json)["client_email"]
+            cred = ee.ServiceAccountCredentials(email, key_data=key_json)
+        else:
+            cred = ee.ServiceAccountCredentials(
+                os.getenv("GEE_SERVICE_ACC_EMAIL"), os.getenv("GEE_SERVICE_ACC_KEY_PATH"))
+        ee.Initialize(cred)
+    except (ValueError, KeyError) as e:
+        raise KredensialGeeBermasalah(
+            f"Isi GEE_SERVICE_ACCOUNT_KEY_JSON tidak valid (bukan JSON kunci service account): {e}") from e
+    except Exception as e:
+        raise KredensialGeeBermasalah(f"Login ke Google Earth Engine gagal: {e}") from e
+    try:
+        ee.data.setDeadline(BATAS_WAKTU_MS)
     except Exception:  # versi lama earthengine-api
         pass
     _siap = True
@@ -57,6 +76,8 @@ def _dengan_retry(nama, fn):
     for i in range(PERCOBAAN):
         try:
             return fn()
+        except KredensialGeeBermasalah:
+            raise
         except Exception as e:  # earthengine melempar berbagai jenis exception
             terakhir = e
             if i < PERCOBAAN - 1:

@@ -15,7 +15,7 @@ NAMA_FIELD = {"phh2o": "ph", "soc": "organic_carbon"}
 WAJIB = ["ph", "sand", "silt", "clay"]
 
 
-def fetch_tanah(lat, lon):
+def fetch_tanah(lat, lon, cepat=False):
     """Ambil data tanah satu titik. Field yang tidak ada datanya bernilai None.
 
     Mengembalikan dict:
@@ -26,7 +26,9 @@ def fetch_tanah(lat, lon):
               ("value", "mean"), ("value", "Q0.05"), ("value", "Q0.95")]
     params += [("property", p) for p in PROPERTI]
 
-    raw = get_json(SOILGRIDS_URL, params, "SoilGrids", timeout=20)
+    # cepat=True untuk titik sekitar: satu percobaan saja supaya total waktu terkendali
+    raw = get_json(SOILGRIDS_URL, params, "SoilGrids", timeout=10 if cepat else 15,
+                   percobaan=1 if cepat else 2)
     return parse(raw)
 
 

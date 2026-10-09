@@ -83,7 +83,7 @@ def _fetch_dengan_sekitar(lat, lon):
     terisi = []
     for dlat, dlon in ((OFFSET, 0), (-OFFSET, 0), (0, OFFSET), (0, -OFFSET)):
         try:
-            alt = soilgrids.fetch_tanah(lat + dlat, lon + dlon)
+            alt = soilgrids.fetch_tanah(lat + dlat, lon + dlon, cepat=True)
         except SumberDataGagal:
             continue
         for f in FIELD_TANAH + ["ph_q05", "ph_q95"]:

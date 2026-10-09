@@ -25,7 +25,7 @@ def fetch_iklim(lat, lon):
         "start_date": PERIODE_IKLIM[0], "end_date": PERIODE_IKLIM[1],
         "daily": "precipitation_sum,temperature_2m_mean,et0_fao_evapotranspiration",
         "timezone": "Asia/Jakarta",
-    }, "Open-Meteo (iklim)", timeout=30)
+    }, "Open-Meteo (iklim)", timeout=25, percobaan=2)
 
     harian = data.get("daily") or {}
     tanggal = harian.get("time") or []
