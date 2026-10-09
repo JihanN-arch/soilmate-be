@@ -120,6 +120,47 @@ def fetch_satelit(lat, lon, radius_m=100):
     }
 
 
+# SoilGrids 2.0 di katalog komunitas Earth Engine (ISRIC). Data dan satuannya
+# sama dengan REST API SoilGrids (nilai integer yang harus dibagi faktor).
+SOILGRIDS_GEE = {
+    # nama di ISRIC: (nama field kita, faktor pembagi)
+    "phh2o": ("ph", 10),
+    "sand": ("sand", 10),            # g/kg -> %
+    "silt": ("silt", 10),
+    "clay": ("clay", 10),
+    "soc": ("organic_carbon", 10),   # dg/kg -> g/kg
+    "nitrogen": ("nitrogen", 100),   # cg/kg -> g/kg
+}
+KEDALAMAN_TANAH = "5-15cm"           # sama dengan data training model
+
+
+def fetch_tanah(lat, lon):
+    """Data tanah SoilGrids lewat GEE. Jauh lebih cepat dan stabil dari REST.
+
+    Rata-rata dalam radius 150 m; kalau titiknya tidak punya data (permukiman,
+    badan air), radius diperluas ke 600 m. Bentuk keluaran sama dengan
+    apis.soilgrids.fetch_tanah (kecuali ph_q05/ph_q95 tidak tersedia).
+    """
+    def jalan(radius):
+        ee = _ee()
+        img = ee.Image.cat([
+            ee.Image(f"projects/soilgrids-isric/{nama}_mean")
+            .select(f"{nama}_{KEDALAMAN_TANAH}_mean").rename(nama)
+            for nama in SOILGRIDS_GEE])
+        area = ee.Geometry.Point([lon, lat]).buffer(radius)
+        return img.reduceRegion(ee.Reducer.mean(), area, 250).getInfo() or {}
+
+    hasil = {}
+    for radius in (150, 600):
+        mentah = _dengan_retry("GEE (SoilGrids)", lambda: jalan(radius))
+        hasil = {field: None if mentah.get(nama) is None else round(mentah[nama] / faktor, 3)
+                 for nama, (field, faktor) in SOILGRIDS_GEE.items()}
+        if hasil["ph"] is not None and hasil["clay"] is not None:
+            break
+    hasil.update(ph_q05=None, ph_q95=None, _sumber="soilgrids_gee")
+    return hasil
+
+
 def fetch_deret_ndvi(lat, lon, mulai, selesai=None, radius_m=50, min_fraksi_valid=0.3):
     """Deret NDVI per tanggal citra Sentinel-2 (untuk monitoring pasca-tanam).
 

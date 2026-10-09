@@ -561,3 +561,38 @@ class GeeKredensialTes(TestCase):
         with patch.dict("os.environ", {"GEE_SERVICE_ACCOUNT_KEY_JSON": "{"}), patch.object(gee, "_siap", False):
             with self.assertRaisesRegex(gee.KredensialGeeBermasalah, "tidak valid"):
                 gee.fetch_satelit(LAT, LON)
+
+
+class TanahViaGeeTes(DasarTes):
+    GEE_TANAH = {"ph": 5.4, "sand": 30.0, "silt": 35.0, "clay": 35.0, "organic_carbon": 14.0,
+                 "nitrogen": 1.5, "ph_q05": None, "ph_q95": None, "_sumber": "soilgrids_gee"}
+
+    @patch(P_SAT, return_value=SATELIT)
+    @patch(P_IKLIM, return_value=IKLIM)
+    @patch(P_TANAH, side_effect=AssertionError("REST tidak boleh dipanggil kalau GEE berhasil"))
+    def test_gee_utama(self, *_):
+        with patch("recommendation.services.apis.gee.kredensial_tersedia", return_value=True), \
+                patch("recommendation.services.apis.gee.fetch_tanah", return_value=dict(self.GEE_TANAH)):
+            r = self.api.post("/api/recommend/", self.body(), format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        kl = r.json()["recommendation"]["kondisi_lahan"]
+        self.assertEqual((kl["ph_tanah"], kl["tekstur_kelas"]), (5.4, "clay loam"))
+        self.assertIsNone(kl["ph_rentang"])
+
+    @patch(P_SAT, return_value=SATELIT)
+    @patch(P_IKLIM, return_value=IKLIM)
+    @patch(P_TANAH, return_value=dict(TANAH))
+    def test_gee_gagal_pakai_rest(self, rest, *_):
+        with patch("recommendation.services.apis.gee.kredensial_tersedia", return_value=True), \
+                patch("recommendation.services.apis.gee.fetch_tanah", side_effect=SumberDataGagal("down")):
+            r = self.api.post("/api/recommend/", self.body(), format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertTrue(rest.called)
+        self.assertEqual(r.json()["recommendation"]["kondisi_lahan"]["ph_tanah"], 5.5)
+
+    def test_konversi_satuan_gee(self):
+        from .services.apis import gee
+        mentah = {"phh2o": 54, "sand": 300, "silt": 350, "clay": 350, "soc": 140, "nitrogen": 150}
+        with patch.object(gee, "_dengan_retry", return_value=mentah):
+            d = gee.fetch_tanah(LAT, LON)
+        self.assertEqual((d["ph"], d["clay"], d["organic_carbon"], d["nitrogen"]), (5.4, 35.0, 14.0, 1.5))

@@ -16,7 +16,7 @@ import logging
 from ml_lib.rule_based_scorer import _USDA_CENTROIDS
 
 from . import cache
-from .apis import soilgrids
+from .apis import gee, soilgrids
 from .errors import DataTidakLengkap, SumberDataGagal
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,24 @@ def _lengkap(p):
     return bool(p) and p.get("ph") is not None and p.get("tekstur_kelas") is not None
 
 
+def _ambil_api(lat, lon):
+    """SoilGrids lewat GEE dulu (cepat), REST SoilGrids sebagai cadangan.
+
+    REST SoilGrids sering lambat (timeout 15 s berulang), sedangkan GEE
+    menyajikan data SoilGrids 2.0 yang sama dalam beberapa detik.
+    """
+    if gee.kredensial_tersedia():
+        try:
+            data = gee.fetch_tanah(lat, lon)
+            data["tekstur_kelas"] = soilgrids.tekstur_dari_fraksi(data)
+            if _lengkap(data):
+                return data
+            logger.info("SoilGrids via GEE kosong di (%s, %s), mencoba REST", lat, lon)
+        except SumberDataGagal as e:
+            logger.warning("SoilGrids via GEE gagal: %s; mencoba REST", e)
+    return _fetch_dengan_sekitar(lat, lon)
+
+
 def _fetch_dengan_sekitar(lat, lon):
     data = soilgrids.fetch_tanah(lat, lon)
     if _lengkap(data):
@@ -112,7 +130,7 @@ def resolve_tanah(lat, lon, uji_tanah=None):
     if not _lengkap(data):
         try:
             payload, asal_api, info = cache.ambil_atau_fetch(
-                "tanah", lat, lon, _fetch_dengan_sekitar, syarat_tetangga=_lengkap)
+                "tanah", lat, lon, _ambil_api, syarat_tetangga=_lengkap)
             if asal_api != "api" and asal_api != "cache":
                 catatan.append("SoilGrids sedang tidak dapat diakses; data tanah memakai "
                                + ("cache lama." if asal_api == "cache_kedaluwarsa"

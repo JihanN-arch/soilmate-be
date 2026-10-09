@@ -31,7 +31,8 @@ class Command(BaseCommand):
         out(f"Kredensial GEE tersedia: {gee.kredensial_tersedia()}\n")
 
         uji = [
-            ("SoilGrids", lambda: soilgrids.fetch_tanah(lat, lon)),
+            ("SoilGrids via GEE", lambda: gee.fetch_tanah(lat, lon)),
+            ("SoilGrids REST", lambda: soilgrids.fetch_tanah(lat, lon)),
             ("Open-Meteo iklim", lambda: openmeteo.fetch_iklim(lat, lon)),
             ("Open-Meteo prakiraan", lambda: openmeteo.fetch_prakiraan(lat, lon)),
             ("GEE satelit", lambda: gee.fetch_satelit(lat, lon)),

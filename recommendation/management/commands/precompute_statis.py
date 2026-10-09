@@ -22,11 +22,11 @@ from django.core.management.base import BaseCommand
 
 from recommendation.services import cache
 from recommendation.services.apis import gee
-from recommendation.services.data_tanah import _fetch_dengan_sekitar
+from recommendation.services.data_tanah import _ambil_api
 from recommendation.services.environment_service import _iklim_valid
 from recommendation.services.errors import SumberDataGagal
 
-FETCH = {"tanah": _fetch_dengan_sekitar, "iklim": _iklim_valid, "satelit": gee.fetch_satelit}
+FETCH = {"tanah": _ambil_api, "iklim": _iklim_valid, "satelit": gee.fetch_satelit}
 
 
 class Command(BaseCommand):

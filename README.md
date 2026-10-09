@@ -9,7 +9,7 @@ pip install -r requirements.txt
 export DATABASE_URL=sqlite:///db.sqlite3 DJANGO_SECRET_KEY=dev DJANGO_DEBUG=True DJANGO_ALLOWED_HOSTS=*
 python manage.py migrate
 python manage.py seed_crop
-python manage.py test recommendation      # 40 tes, semua API eksternal di-mock
+python manage.py test recommendation      # 43 tes, semua API eksternal di-mock
 python manage.py runserver
 ```
 
@@ -166,6 +166,7 @@ Biaya produksi dan produktivitas diisi lewat Django admin (`/admin/`, model Crop
 
 ## Catatan desain
 
+- **Data tanah:** SoilGrids 2.0 diambil lewat Google Earth Engine (katalog ISRIC, cepat), dengan REST SoilGrids sebagai cadangan. Lewat GEE, `ph_rentang` bernilai null.
 - **Tidak ada lagi mock data.** Kalau API gagal: cache kedaluwarsa → sel tetangga → error yang jelas. Asal setiap nilai ada di `sumber_data`.
 - **Input model mengikuti training** (`ml_lib/predict.py`): SoilGrids 5-15 cm, iklim rata-rata 2022-2024.
 - **Satu sumber syarat tumbuh:** skor dan alasan sama-sama membaca `ml_lib/seed.json`. `syarat_tumbuh` di tabel Crop hanya untuk tampilan.
