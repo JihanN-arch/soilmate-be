@@ -1,0 +1,18 @@
+venv/
+.env
+db.sqlite3
+__pycache__/
+*.pyc
+
+# tambahan
+staticfiles/
+*.log
+.vscode/
+.idea/
+.DS_Store
+
+#gee
+nusa_crop_gee_key.json
+# sqlite lokal
+*.sqlite3-wal
+*.sqlite3-shm

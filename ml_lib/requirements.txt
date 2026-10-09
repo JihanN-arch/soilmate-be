@@ -1,0 +1,20 @@
+# NUSA-CROP - dependensi model ML
+# Versi di-pin persis: artefak model & preprocessor sensitif terhadap versi library.
+#
+# preprocessor.joblib adalah pickle objek scikit-learn -> HARUS di-load dengan
+# versi scikit-learn yang sama seperti saat fit, kalau tidak muncul
+# InconsistentVersionWarning dan hasil transform bisa berbeda diam-diam.
+#
+# model_xgb.json memakai format JSON native XGBoost (bukan pickle), jadi aman
+# lintas versi. Pin xgboost tetap dipertahankan supaya hasil training reproducible.
+#
+# Dilatih & diverifikasi pada Python 3.13.9.
+
+numpy==2.5.1
+pandas==3.0.3
+scikit-learn==1.9.0
+joblib==1.5.3
+xgboost==3.4.0
+
+# dipakai soilgrids_adapter.usda_texture_class() utk klasifikasi tekstur USDA
+soiltexture==1.0.4

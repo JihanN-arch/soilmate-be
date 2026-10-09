@@ -1,0 +1,25 @@
+"""TEMPLATE untuk tim ML. Salin/ganti nama jadi `pengapuran.py` lalu isi.
+
+Begitu file `ml_lib/pengapuran.py` ada, endpoint POST /api/simulasi/kapur/
+otomatis aktif (sebelumnya membalas 501). Kontrak lengkap ada di
+recommendation/services/pengapuran.py.
+"""
+
+
+def simulasi(ph_awal, tekstur_kelas, organic_carbon=None, al_dd=None,
+             dosis_ton_ha=None, target_ph=None, jenis_kapur="dolomit"):
+    """
+    Tepat satu dari `dosis_ton_ha` / `target_ph` yang terisi.
+    al_dd saat ini selalu None (BE belum punya data Al-dd).
+
+    Wajib mengembalikan:
+        {"ph_baru": float, "dosis_ton_ha": float, "catatan": [str, ...]}
+    Field tambahan boleh, akan diteruskan ke FE di "detail_ml".
+    Lempar ValueError kalau input tidak masuk akal.
+    """
+    if (dosis_ton_ha is None) == (target_ph is None):
+        raise ValueError("isi salah satu: dosis_ton_ha atau target_ph")
+    if target_ph is not None and target_ph <= ph_awal:
+        raise ValueError("target_ph harus lebih tinggi dari pH awal")
+
+    raise NotImplementedError("Isi perhitungan pengapuran di sini")

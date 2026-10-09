@@ -1,0 +1,588 @@
+[
+ {
+  "model": "crops.cropprofile",
+  "pk": 1,
+  "fields": {
+   "crop_code": "singkong",
+   "crop_name": "Singkong",
+   "scientific_name": "Manihot esculenta",
+   "category": "pangan",
+   "description": "",
+   "image_url": "",
+   "ph_min": 4.5,
+   "ph_max": 8.0,
+   "ph_optimal_min": 5.5,
+   "ph_optimal_max": 6.5,
+   "rainfall_min": 500,
+   "rainfall_max": 5000,
+   "rainfall_optimal_min": 1000,
+   "rainfall_optimal_max": 1500,
+   "cycle_months": 10,
+   "temp_min": 10.0,
+   "temp_max": 35.0,
+   "temp_optimal_min": 27.0,
+   "temp_optimal_max": 29.0,
+   "elevation_min": 10,
+   "elevation_max": 700,
+   "elevation_optimal_min": null,
+   "elevation_optimal_max": null,
+   "optimal_soil_texture": [
+    "sandy loam",
+    "loam"
+   ],
+   "tolerable_soil_texture": [
+    "loamy sand",
+    "sandy clay loam",
+    "clay loam",
+    "sandy clay",
+    "clay"
+   ],
+   "drought_tolerance": "tinggi",
+   "acid_tolerance": "tinggi",
+   "salinity_tolerance": "rendah",
+   "al_tolerance": true,
+   "reference": "Cassava Production Guidelines (DAFF South Africa); FAO Ecocrop"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 1,
+  "fields": {
+   "crop": 1,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ },
+ {
+  "model": "crops.cropprofile",
+  "pk": 2,
+  "fields": {
+   "crop_code": "ubi_jalar",
+   "crop_name": "Ubi Jalar",
+   "scientific_name": "Ipomoea batatas",
+   "category": "pangan",
+   "description": "",
+   "image_url": "",
+   "ph_min": 4.5,
+   "ph_max": 7.5,
+   "ph_optimal_min": 5.5,
+   "ph_optimal_max": 6.5,
+   "rainfall_min": 750,
+   "rainfall_max": 2000,
+   "rainfall_optimal_min": 1000,
+   "rainfall_optimal_max": 1500,
+   "cycle_months": 4,
+   "temp_min": 15.0,
+   "temp_max": 35.0,
+   "temp_optimal_min": 21.0,
+   "temp_optimal_max": 26.0,
+   "elevation_min": 0,
+   "elevation_max": 2500,
+   "elevation_optimal_min": 0,
+   "elevation_optimal_max": 1500,
+   "optimal_soil_texture": [
+    "sandy loam"
+   ],
+   "tolerable_soil_texture": [
+    "loamy sand",
+    "loam"
+   ],
+   "drought_tolerance": "sedang",
+   "acid_tolerance": "sedang",
+   "salinity_tolerance": "rendah",
+   "al_tolerance": false,
+   "reference": "FAO Ecocrop; International Potato Center (CIP)"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 2,
+  "fields": {
+   "crop": 2,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ },
+ {
+  "model": "crops.cropprofile",
+  "pk": 3,
+  "fields": {
+   "crop_code": "jagung",
+   "crop_name": "Jagung",
+   "scientific_name": "Zea mays",
+   "category": "pangan",
+   "description": "",
+   "image_url": "",
+   "ph_min": 4.5,
+   "ph_max": 8.5,
+   "ph_optimal_min": 5.8,
+   "ph_optimal_max": 7.0,
+   "rainfall_min": 400,
+   "rainfall_max": 1800,
+   "rainfall_optimal_min": 600,
+   "rainfall_optimal_max": 1200,
+   "cycle_months": 4,
+   "temp_min": 10.0,
+   "temp_max": 47.0,
+   "temp_optimal_min": 18.0,
+   "temp_optimal_max": 33.0,
+   "elevation_min": 0,
+   "elevation_max": 3000,
+   "elevation_optimal_min": 0,
+   "elevation_optimal_max": 1800,
+   "optimal_soil_texture": [
+    "loam",
+    "silt loam"
+   ],
+   "tolerable_soil_texture": [
+    "sandy loam",
+    "loam",
+    "silt loam",
+    "clay loam"
+   ],
+   "drought_tolerance": "sedang",
+   "acid_tolerance": "sedang",
+   "salinity_tolerance": "rendah",
+   "al_tolerance": false,
+   "reference": "FAO Ecocrop; CIMMYT"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 3,
+  "fields": {
+   "crop": 3,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ },
+ {
+  "model": "crops.cropprofile",
+  "pk": 4,
+  "fields": {
+   "crop_code": "sorgum",
+   "crop_name": "Sorgum",
+   "scientific_name": "Sorghum bicolor",
+   "category": "pangan",
+   "description": "",
+   "image_url": "",
+   "ph_min": 5.0,
+   "ph_max": 8.5,
+   "ph_optimal_min": 6.0,
+   "ph_optimal_max": 7.5,
+   "rainfall_min": 350,
+   "rainfall_max": 1500,
+   "rainfall_optimal_min": 450,
+   "rainfall_optimal_max": 800,
+   "cycle_months": 4,
+   "temp_min": 16.0,
+   "temp_max": 40.0,
+   "temp_optimal_min": 25.0,
+   "temp_optimal_max": 32.0,
+   "elevation_min": 0,
+   "elevation_max": 2000,
+   "elevation_optimal_min": 0,
+   "elevation_optimal_max": 1000,
+   "optimal_soil_texture": [
+    "sandy loam",
+    "loam"
+   ],
+   "tolerable_soil_texture": [
+    "sand",
+    "loamy sand",
+    "sandy loam",
+    "loam",
+    "clay loam"
+   ],
+   "drought_tolerance": "tinggi",
+   "acid_tolerance": "sedang",
+   "salinity_tolerance": "sedang",
+   "al_tolerance": false,
+   "reference": "FAO Ecocrop; ICRISAT"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 4,
+  "fields": {
+   "crop": 4,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ },
+ {
+  "model": "crops.cropprofile",
+  "pk": 5,
+  "fields": {
+   "crop_code": "kacang_tanah",
+   "crop_name": "Kacang Tanah",
+   "scientific_name": "Arachis hypogaea",
+   "category": "pangan",
+   "description": "",
+   "image_url": "",
+   "ph_min": 5.0,
+   "ph_max": 7.5,
+   "ph_optimal_min": 5.8,
+   "ph_optimal_max": 6.5,
+   "rainfall_min": 500,
+   "rainfall_max": 1500,
+   "rainfall_optimal_min": 800,
+   "rainfall_optimal_max": 1200,
+   "cycle_months": 4,
+   "temp_min": 18.0,
+   "temp_max": 35.0,
+   "temp_optimal_min": 22.0,
+   "temp_optimal_max": 28.0,
+   "elevation_min": 0,
+   "elevation_max": 1800,
+   "elevation_optimal_min": null,
+   "elevation_optimal_max": null,
+   "optimal_soil_texture": [
+    "sandy loam",
+    "loam"
+   ],
+   "tolerable_soil_texture": [
+    "loamy sand",
+    "sandy loam",
+    "loam"
+   ],
+   "drought_tolerance": "sedang",
+   "acid_tolerance": "rendah",
+   "salinity_tolerance": "rendah",
+   "al_tolerance": false,
+   "reference": "FAO Ecocrop; ICRISAT Peanut Production Manual"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 5,
+  "fields": {
+   "crop": 5,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ },
+ {
+  "model": "crops.cropprofile",
+  "pk": 6,
+  "fields": {
+   "crop_code": "kacang_hijau",
+   "crop_name": "Kacang Hijau",
+   "scientific_name": "Vigna radiata",
+   "category": "pangan",
+   "description": "",
+   "image_url": "",
+   "ph_min": 5.0,
+   "ph_max": 7.5,
+   "ph_optimal_min": 5.8,
+   "ph_optimal_max": 6.5,
+   "rainfall_min": 350,
+   "rainfall_max": 1200,
+   "rainfall_optimal_min": 600,
+   "rainfall_optimal_max": 900,
+   "cycle_months": 3,
+   "temp_min": 20.0,
+   "temp_max": 35.0,
+   "temp_optimal_min": 28.0,
+   "temp_optimal_max": 30.0,
+   "elevation_min": 0,
+   "elevation_max": 1800,
+   "elevation_optimal_min": null,
+   "elevation_optimal_max": null,
+   "optimal_soil_texture": [
+    "sandy loam",
+    "loam"
+   ],
+   "tolerable_soil_texture": [
+    "loamy sand",
+    "sandy loam",
+    "loam",
+    "clay loam"
+   ],
+   "drought_tolerance": "sedang",
+   "acid_tolerance": "sedang",
+   "salinity_tolerance": "rendah",
+   "al_tolerance": false,
+   "reference": "FAO Ecocrop; AVRDC - World Vegetable Center"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 6,
+  "fields": {
+   "crop": 6,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ },
+ {
+  "model": "crops.cropprofile",
+  "pk": 7,
+  "fields": {
+   "crop_code": "kacang_panjang",
+   "crop_name": "Kacang Panjang",
+   "scientific_name": "Vigna unguiculata subsp. sesquipedalis",
+   "category": "hortikultura",
+   "description": "",
+   "image_url": "",
+   "ph_min": 5.0,
+   "ph_max": 7.5,
+   "ph_optimal_min": 5.5,
+   "ph_optimal_max": 6.5,
+   "rainfall_min": 600,
+   "rainfall_max": 2000,
+   "rainfall_optimal_min": 900,
+   "rainfall_optimal_max": 1500,
+   "cycle_months": 3,
+   "temp_min": 18.0,
+   "temp_max": 35.0,
+   "temp_optimal_min": 24.0,
+   "temp_optimal_max": 30.0,
+   "elevation_min": 0,
+   "elevation_max": 1500,
+   "elevation_optimal_min": null,
+   "elevation_optimal_max": null,
+   "optimal_soil_texture": [
+    "sandy loam"
+   ],
+   "tolerable_soil_texture": [
+    "loamy sand",
+    "sandy loam",
+    "loam"
+   ],
+   "drought_tolerance": "sedang",
+   "acid_tolerance": "rendah",
+   "salinity_tolerance": "rendah",
+   "al_tolerance": false,
+   "reference": "FAO Ecocrop; AVRDC; Kementerian Pertanian RI"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 7,
+  "fields": {
+   "crop": 7,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ },
+ {
+  "model": "crops.cropprofile",
+  "pk": 8,
+  "fields": {
+   "crop_code": "cabai_rawit",
+   "crop_name": "Cabai Rawit",
+   "scientific_name": "Capsicum frutescens",
+   "category": "hortikultura",
+   "description": "",
+   "image_url": "",
+   "ph_min": 5.0,
+   "ph_max": 7.0,
+   "ph_optimal_min": 5.5,
+   "ph_optimal_max": 6.8,
+   "rainfall_min": 600,
+   "rainfall_max": 2000,
+   "rainfall_optimal_min": 800,
+   "rainfall_optimal_max": 1200,
+   "cycle_months": 7,
+   "temp_min": 18.0,
+   "temp_max": 35.0,
+   "temp_optimal_min": 24.0,
+   "temp_optimal_max": 30.0,
+   "elevation_min": 0,
+   "elevation_max": 1500,
+   "elevation_optimal_min": 0,
+   "elevation_optimal_max": 800,
+   "optimal_soil_texture": [
+    "sandy loam",
+    "loam"
+   ],
+   "tolerable_soil_texture": [
+    "loamy sand",
+    "sandy loam",
+    "loam",
+    "clay loam"
+   ],
+   "drought_tolerance": "sedang",
+   "acid_tolerance": "rendah",
+   "salinity_tolerance": "rendah",
+   "al_tolerance": false,
+   "reference": "FAO Ecocrop; BPSIP Kalimantan Selatan SOP Budidaya Cabai Rawit"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 8,
+  "fields": {
+   "crop": 8,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ },
+ {
+  "model": "crops.cropprofile",
+  "pk": 9,
+  "fields": {
+   "crop_code": "terong",
+   "crop_name": "Terong",
+   "scientific_name": "Solanum melongena",
+   "category": "hortikultura",
+   "description": "",
+   "image_url": "",
+   "ph_min": 5.5,
+   "ph_max": 7.5,
+   "ph_optimal_min": 5.8,
+   "ph_optimal_max": 6.8,
+   "rainfall_min": 800,
+   "rainfall_max": 2000,
+   "rainfall_optimal_min": 1000,
+   "rainfall_optimal_max": 1500,
+   "cycle_months": 6,
+   "temp_min": 18.0,
+   "temp_max": 35.0,
+   "temp_optimal_min": 25.0,
+   "temp_optimal_max": 30.0,
+   "elevation_min": 0,
+   "elevation_max": 1200,
+   "elevation_optimal_min": 0,
+   "elevation_optimal_max": 800,
+   "optimal_soil_texture": [
+    "sandy loam",
+    "loam"
+   ],
+   "tolerable_soil_texture": [
+    "loamy sand",
+    "sandy loam",
+    "loam",
+    "clay loam"
+   ],
+   "drought_tolerance": "sedang",
+   "acid_tolerance": "rendah",
+   "salinity_tolerance": "rendah",
+   "al_tolerance": false,
+   "reference": "FAO Ecocrop; Dinas Pertanian Demak"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 9,
+  "fields": {
+   "crop": 9,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ },
+ {
+  "model": "crops.cropprofile",
+  "pk": 10,
+  "fields": {
+   "crop_code": "kemiri",
+   "crop_name": "Kemiri",
+   "scientific_name": "Aleurites moluccanus",
+   "category": "perkebunan",
+   "description": "",
+   "image_url": "",
+   "ph_min": 5.0,
+   "ph_max": 8.0,
+   "ph_optimal_min": 5.5,
+   "ph_optimal_max": 7.0,
+   "rainfall_min": 1200,
+   "rainfall_max": 3000,
+   "rainfall_optimal_min": 1500,
+   "rainfall_optimal_max": 2500,
+   "cycle_months": 12,
+   "temp_min": 18.0,
+   "temp_max": 32.0,
+   "temp_optimal_min": 22.0,
+   "temp_optimal_max": 28.0,
+   "elevation_min": 0,
+   "elevation_max": 1200,
+   "elevation_optimal_min": null,
+   "elevation_optimal_max": null,
+   "optimal_soil_texture": [
+    "loam",
+    "clay loam"
+   ],
+   "tolerable_soil_texture": [
+    "sandy loam",
+    "loam",
+    "clay loam",
+    "clay"
+   ],
+   "drought_tolerance": "sedang",
+   "acid_tolerance": "sedang",
+   "salinity_tolerance": "rendah",
+   "al_tolerance": false,
+   "reference": "Balittri; FAO Ecocrop"
+  }
+ },
+ {
+  "model": "crops.cultivationguide",
+  "pk": 10,
+  "fields": {
+   "crop": 10,
+   "planting_time": "",
+   "plant_spacing": "",
+   "fertilizer": "",
+   "water_need": "",
+   "harvest_estimate": "",
+   "yield_estimate": "",
+   "care_tips": "",
+   "benefits": ""
+  }
+ }
+]

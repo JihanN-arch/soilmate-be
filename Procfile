@@ -1,0 +1,1 @@
+web: gunicorn nusacrop_backend.wsgi

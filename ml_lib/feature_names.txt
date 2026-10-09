@@ -1,0 +1,13 @@
+num__ph
+num__rainfall_mm
+num__rain_wet3
+num__rain_dry3
+num__bulan_basah
+num__bulan_kering
+num__temp_c
+num__elevation_m
+num__ndvi
+cat__soil_texture_clay
+cat__soil_texture_clay loam
+cat__soil_texture_sandy clay loam
+cat__soil_texture_silty clay
