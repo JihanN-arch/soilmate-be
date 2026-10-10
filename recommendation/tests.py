@@ -395,10 +395,38 @@ class LuasDanPengapuranTes(DasarTes):
                           "max": e["estimasi_keuntungan_per_ha"]["max"] // 4})
 
     def test_pengapuran_belum_tersedia_501(self):
+        import sys
         rek = self._analisis()
-        r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "anon-1", "riwayat_id": rek["riwayat_id"],
-                                                   "dosis_ton_ha": 2}, format="json")
+        with patch.dict(sys.modules, {"ml_lib.pengapuran": None}):   # modul ML dianggap tidak ada
+            r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "anon-1",
+                                                       "riwayat_id": rek["riwayat_id"],
+                                                       "dosis_ton_ha": 2}, format="json")
         self.assertEqual(r.status_code, 501)
+
+    def test_pengapuran_modul_asli(self):
+        rek = self._analisis(luas_lahan_m2=2500)
+        r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "anon-1", "riwayat_id": rek["riwayat_id"],
+                                                   "target_ph": 6.0, "jenis_kapur": "dolomit"}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        b = r.json()
+        self.assertFalse(b["mode_contoh"])
+        for k in ("dosis_penetral_al_ton_ha", "al_dd_awal", "estimasi_lama_efek_tahun", "tekstur_dipakai"):
+            self.assertIn(k, b["detail_ml"])
+        self.assertTrue(b["detail_ml"]["organic_carbon_diasumsikan"])   # C-organik SoilGrids tidak dikirim
+        self.assertTrue(any("aluminium" in c for c in b["catatan"]))   # catatan ML ikut tampil
+        self.assertEqual(b["kebutuhan_kapur"]["total_kg"],
+                         round(b["kebutuhan_kapur"]["dosis_ton_ha"] * 1000 * 2500 / 10_000))
+        k = b["kebutuhan_kapur"]
+        self.assertEqual(k["harga_per_kg_rentang"], {"min": 1320, "max": 3000})
+        self.assertEqual(k["perkiraan_biaya_rentang"], {"min": k["total_kg"] * 1320, "max": k["total_kg"] * 3000})
+        r2 = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "anon-1", "riwayat_id": rek["riwayat_id"],
+                                                    "target_ph": 6.0, "jenis_kapur": "kalsit"}, format="json").json()
+        self.assertIsNone(r2["kebutuhan_kapur"]["perkiraan_biaya_rentang"])
+        self.assertTrue(any("belum tersedia" in c for c in r2["catatan"]))
+        r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "anon-1", "riwayat_id": rek["riwayat_id"],
+                                                   "target_ph": 7.5}, format="json")
+        self.assertEqual(r.status_code, 400)   # butuh > 20 t/ha -> ValueError dari ML
+        self.assertIn("terlalu tinggi", r.json()["pesan"])
 
     def test_pengapuran_dengan_modul_ml_palsu(self):
         import sys
@@ -504,6 +532,7 @@ class KontrakMlTes(TestCase):
             hasil = asli(*a, **kw)
             for h in hasil:
                 h["skor_akhir"] = 99.0 if h["crop_code"] == "sorgum" else 10.0
+                h["sumber_skor_tanaman"] = "ml" if h["crop_code"] == "sorgum" else "aturan"
             return hasil
 
         with patch.object(ml_model._model, "recommend", side_effect=dengan_skor_akhir):
@@ -511,10 +540,19 @@ class KontrakMlTes(TestCase):
         self.assertEqual(hasil[0]["crop_code"], "sorgum")
         call_command("seed_crop", stdout=open("/dev/null", "w"))
         item = format_daftar(hasil[:1], {**self.KONDISI, "kualitas_data": {"skor": 0.8}})[0]
-        self.assertEqual((item["skor_kesesuaian"], item["sumber_skor"]), (0.99, "hybrid"))
+        self.assertEqual((item["skor_kesesuaian"], item["sumber_skor"]), (0.99, "ml"))
 
 
 class PengapuranContohTes(DasarTes):
+    """Mode contoh hanya aktif kalau modul ML asli TIDAK ada."""
+
+    def setUp(self):
+        super().setUp()
+        import sys
+        self._tanpa_ml = patch.dict(sys.modules, {"ml_lib.pengapuran": None})
+        self._tanpa_ml.start()
+        self.addCleanup(self._tanpa_ml.stop)
+
     def test_mati_secara_default(self):
         r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "a", "uji_tanah": {"ph": 5.0},
                                                    "target_ph": 6.0}, format="json")
@@ -633,3 +671,39 @@ class DataEkonomiTes(DasarTes):
         self.assertEqual((singkong["harga_per_kg"], singkong["tanggal_harga"]), (1350, "2025-01-31"))
         self.assertFalse(HargaKomoditas.objects.filter(crop_id="singkong", sumber__startswith="BPS").exists())
         self.assertEqual(ekonomi.estimasi(Crop.objects.get(slug="sorgum"))["status"], "belum_tersedia")
+
+
+class KepercayaanBaruTes(TestCase):
+    def test_ambang_dan_turun_karena_cadangan(self):
+        from .utils.confidence import get_confidence
+        self.assertEqual(get_confidence(0.80, {"iklim": "api"})[0], "Tinggi")
+        self.assertEqual(get_confidence(0.75, {})[0], "Tinggi")
+        self.assertEqual(get_confidence(0.60, {})[0], "Sedang")
+        self.assertEqual(get_confidence(0.49, {})[0], "Rendah")
+        label, d = get_confidence(0.80, {"iklim": "tetangga", "elevasi": "api"})
+        self.assertEqual((label, d["tingkat_dasar"]), ("Sedang", "Tinggi"))
+        self.assertEqual(get_confidence(0.30, {"elevasi": "open_meteo_dem"})[0], "Rendah")
+        self.assertEqual(get_confidence(None, {}, 0.9)[1]["metode"], "kualitas_data")
+
+    def test_c_organik_soilgrids_tidak_dikirim_ke_kapur(self):
+        import sys
+        import types
+        from .services.pengapuran import simulasi_kapur
+        diterima = {}
+        palsu = types.ModuleType("ml_lib.pengapuran")
+
+        def sim(**kw):
+            diterima.update(kw)
+            return {"ph_baru": 6.0, "dosis_ton_ha": 2.0}
+        palsu.simulasi = sim
+        call_command("seed_crop", stdout=open("/dev/null", "w"))
+        r = RiwayatPencarian.objects.create(
+            anonymous_id="a", lat=LAT, lon=LON, ph_tanah=5.0, suhu=27, elevasi=30, tekstur_tanah={},
+            tekstur_kelas="clay loam", curah_hujan_bulanan=IKLIM["curah_hujan_bulanan"],
+            organic_carbon=53.0, sumber_data={"organic_carbon": "api"})
+        with patch.dict(sys.modules, {"ml_lib.pengapuran": palsu}):
+            simulasi_kapur(riwayat=r, target_ph=6.0)
+            self.assertIsNone(diterima["organic_carbon"])
+            r.sumber_data = {"organic_carbon": "uji_tanah"}
+            simulasi_kapur(riwayat=r, target_ph=6.0)
+            self.assertEqual(diterima["organic_carbon"], 53.0)

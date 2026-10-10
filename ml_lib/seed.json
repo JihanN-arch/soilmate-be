@@ -10,20 +10,20 @@
    "description": "",
    "image_url": "",
    "ph_min": 4.5,
-   "ph_max": 8.0,
+   "ph_max": 9.0,
    "ph_optimal_min": 5.5,
-   "ph_optimal_max": 6.5,
+   "ph_optimal_max": 8.0,
    "rainfall_min": 500,
    "rainfall_max": 5000,
    "rainfall_optimal_min": 1000,
    "rainfall_optimal_max": 1500,
    "cycle_months": 10,
-   "temp_min": 10.0,
-   "temp_max": 35.0,
-   "temp_optimal_min": 27.0,
-   "temp_optimal_max": 29.0,
-   "elevation_min": 10,
-   "elevation_max": 700,
+   "temp_min": 10,
+   "temp_max": 35,
+   "temp_optimal_min": 20,
+   "temp_optimal_max": 29,
+   "elevation_min": 0,
+   "elevation_max": 2000,
    "elevation_optimal_min": null,
    "elevation_optimal_max": null,
    "optimal_soil_texture": [
@@ -41,7 +41,7 @@
    "acid_tolerance": "tinggi",
    "salinity_tolerance": "rendah",
    "al_tolerance": true,
-   "reference": "Cassava Production Guidelines (DAFF South Africa); FAO Ecocrop"
+   "reference": "FAO EcoCrop (EcoCrop_DB.csv), Manihot esculenta, kode 1420"
   }
  },
  {
@@ -70,20 +70,20 @@
    "description": "",
    "image_url": "",
    "ph_min": 4.5,
-   "ph_max": 7.5,
-   "ph_optimal_min": 5.5,
-   "ph_optimal_max": 6.5,
+   "ph_max": 8.7,
+   "ph_optimal_min": 5.0,
+   "ph_optimal_max": 7.0,
    "rainfall_min": 750,
    "rainfall_max": 2000,
    "rainfall_optimal_min": 1000,
    "rainfall_optimal_max": 1500,
    "cycle_months": 4,
-   "temp_min": 15.0,
-   "temp_max": 35.0,
-   "temp_optimal_min": 21.0,
-   "temp_optimal_max": 26.0,
+   "temp_min": 10,
+   "temp_max": 38,
+   "temp_optimal_min": 21,
+   "temp_optimal_max": 27,
    "elevation_min": 0,
-   "elevation_max": 2500,
+   "elevation_max": 2800,
    "elevation_optimal_min": 0,
    "elevation_optimal_max": 1500,
    "optimal_soil_texture": [
@@ -97,7 +97,7 @@
    "acid_tolerance": "sedang",
    "salinity_tolerance": "rendah",
    "al_tolerance": false,
-   "reference": "FAO Ecocrop; International Potato Center (CIP)"
+   "reference": "FAO EcoCrop (EcoCrop_DB.csv), Ipomoea batatas, kode 1265; suhu optimal Rukmana (2007) dalam Pasaribu dkk. (2018)"
   }
  },
  {
@@ -127,7 +127,7 @@
    "image_url": "",
    "ph_min": 4.5,
    "ph_max": 8.5,
-   "ph_optimal_min": 5.8,
+   "ph_optimal_min": 5.0,
    "ph_optimal_max": 7.0,
    "rainfall_min": 400,
    "rainfall_max": 1800,
@@ -139,7 +139,7 @@
    "temp_optimal_min": 18.0,
    "temp_optimal_max": 33.0,
    "elevation_min": 0,
-   "elevation_max": 3000,
+   "elevation_max": 4000,
    "elevation_optimal_min": 0,
    "elevation_optimal_max": 1800,
    "optimal_soil_texture": [
@@ -156,7 +156,7 @@
    "acid_tolerance": "sedang",
    "salinity_tolerance": "rendah",
    "al_tolerance": false,
-   "reference": "FAO Ecocrop; CIMMYT"
+   "reference": "FAO EcoCrop (EcoCrop_DB.csv), Zea mays, kode 2175"
   }
  },
  {
@@ -185,20 +185,20 @@
    "description": "",
    "image_url": "",
    "ph_min": 5.0,
-   "ph_max": 8.5,
-   "ph_optimal_min": 6.0,
+   "ph_max": 8.0,
+   "ph_optimal_min": 5.5,
    "ph_optimal_max": 7.5,
    "rainfall_min": 350,
    "rainfall_max": 1500,
    "rainfall_optimal_min": 450,
    "rainfall_optimal_max": 800,
    "cycle_months": 4,
-   "temp_min": 16.0,
-   "temp_max": 40.0,
-   "temp_optimal_min": 25.0,
-   "temp_optimal_max": 32.0,
+   "temp_min": 10,
+   "temp_max": 40,
+   "temp_optimal_min": 24,
+   "temp_optimal_max": 35,
    "elevation_min": 0,
-   "elevation_max": 2000,
+   "elevation_max": 2500,
    "elevation_optimal_min": 0,
    "elevation_optimal_max": 1000,
    "optimal_soil_texture": [
@@ -216,7 +216,7 @@
    "acid_tolerance": "sedang",
    "salinity_tolerance": "sedang",
    "al_tolerance": false,
-   "reference": "FAO Ecocrop; ICRISAT"
+   "reference": "FAO EcoCrop (EcoCrop_DB.csv), Sorghum bicolor, kode 48747; suhu Ramirez-Villegas dkk. (2013)"
   }
  },
  {
@@ -245,20 +245,20 @@
    "description": "",
    "image_url": "",
    "ph_min": 5.0,
-   "ph_max": 7.5,
-   "ph_optimal_min": 5.8,
+   "ph_max": 8.5,
+   "ph_optimal_min": 5.5,
    "ph_optimal_max": 6.5,
    "rainfall_min": 500,
    "rainfall_max": 1500,
    "rainfall_optimal_min": 800,
    "rainfall_optimal_max": 1200,
    "cycle_months": 4,
-   "temp_min": 18.0,
-   "temp_max": 35.0,
-   "temp_optimal_min": 22.0,
-   "temp_optimal_max": 28.0,
+   "temp_min": 10,
+   "temp_max": 45,
+   "temp_optimal_min": 22,
+   "temp_optimal_max": 32,
    "elevation_min": 0,
-   "elevation_max": 1800,
+   "elevation_max": 1650,
    "elevation_optimal_min": null,
    "elevation_optimal_max": null,
    "optimal_soil_texture": [
@@ -274,7 +274,7 @@
    "acid_tolerance": "rendah",
    "salinity_tolerance": "rendah",
    "al_tolerance": false,
-   "reference": "FAO Ecocrop; ICRISAT Peanut Production Manual"
+   "reference": "FAO EcoCrop (EcoCrop_DB.csv), Arachis hypogaea, kode 2199"
   }
  },
  {
@@ -303,20 +303,20 @@
    "description": "",
    "image_url": "",
    "ph_min": 5.0,
-   "ph_max": 7.5,
+   "ph_max": 8.3,
    "ph_optimal_min": 5.8,
-   "ph_optimal_max": 6.5,
-   "rainfall_min": 350,
+   "ph_optimal_max": 7.0,
+   "rainfall_min": 150,
    "rainfall_max": 1200,
-   "rainfall_optimal_min": 600,
-   "rainfall_optimal_max": 900,
+   "rainfall_optimal_min": 150,
+   "rainfall_optimal_max": 600,
    "cycle_months": 3,
-   "temp_min": 20.0,
-   "temp_max": 35.0,
-   "temp_optimal_min": 28.0,
-   "temp_optimal_max": 30.0,
+   "temp_min": 8,
+   "temp_max": 40,
+   "temp_optimal_min": 25,
+   "temp_optimal_max": 27,
    "elevation_min": 0,
-   "elevation_max": 1800,
+   "elevation_max": 2000,
    "elevation_optimal_min": null,
    "elevation_optimal_max": null,
    "optimal_soil_texture": [
@@ -333,7 +333,7 @@
    "acid_tolerance": "sedang",
    "salinity_tolerance": "rendah",
    "al_tolerance": false,
-   "reference": "FAO Ecocrop; AVRDC - World Vegetable Center"
+   "reference": "Ditjen Tanaman Pangan (2016) via BSIP Banten; batas dari FAO EcoCrop (EcoCrop_DB.csv), Vigna radiata, kode 2150"
   }
  },
  {
@@ -364,18 +364,18 @@
    "ph_min": 5.0,
    "ph_max": 7.5,
    "ph_optimal_min": 5.5,
-   "ph_optimal_max": 6.5,
+   "ph_optimal_max": 7.0,
    "rainfall_min": 600,
    "rainfall_max": 2000,
    "rainfall_optimal_min": 900,
    "rainfall_optimal_max": 1500,
    "cycle_months": 3,
-   "temp_min": 18.0,
-   "temp_max": 35.0,
-   "temp_optimal_min": 24.0,
-   "temp_optimal_max": 30.0,
+   "temp_min": 14,
+   "temp_max": 38,
+   "temp_optimal_min": 20,
+   "temp_optimal_max": 35,
    "elevation_min": 0,
-   "elevation_max": 1500,
+   "elevation_max": 1000,
    "elevation_optimal_min": null,
    "elevation_optimal_max": null,
    "optimal_soil_texture": [
@@ -390,7 +390,7 @@
    "acid_tolerance": "rendah",
    "salinity_tolerance": "rendah",
    "al_tolerance": false,
-   "reference": "FAO Ecocrop; AVRDC; Kementerian Pertanian RI"
+   "reference": "FAO EcoCrop (EcoCrop_DB.csv), Vigna unguiculata ssp. sesquipedalis, kode 10834"
   }
  },
  {
@@ -419,7 +419,7 @@
    "description": "",
    "image_url": "",
    "ph_min": 5.0,
-   "ph_max": 7.0,
+   "ph_max": 8.3,
    "ph_optimal_min": 5.5,
    "ph_optimal_max": 6.8,
    "rainfall_min": 600,
@@ -427,14 +427,14 @@
    "rainfall_optimal_min": 800,
    "rainfall_optimal_max": 1200,
    "cycle_months": 7,
-   "temp_min": 18.0,
-   "temp_max": 35.0,
-   "temp_optimal_min": 24.0,
-   "temp_optimal_max": 30.0,
+   "temp_min": 7,
+   "temp_max": 40,
+   "temp_optimal_min": 18,
+   "temp_optimal_max": 30,
    "elevation_min": 0,
-   "elevation_max": 1500,
-   "elevation_optimal_min": 0,
-   "elevation_optimal_max": 800,
+   "elevation_max": 2000,
+   "elevation_optimal_min": null,
+   "elevation_optimal_max": null,
    "optimal_soil_texture": [
     "sandy loam",
     "loam"
@@ -449,7 +449,7 @@
    "acid_tolerance": "rendah",
    "salinity_tolerance": "rendah",
    "al_tolerance": false,
-   "reference": "FAO Ecocrop; BPSIP Kalimantan Selatan SOP Budidaya Cabai Rawit"
+   "reference": "FAO EcoCrop (EcoCrop_DB.csv), Capsicum frutescens, kode 621"
   }
  },
  {
@@ -477,23 +477,23 @@
    "category": "hortikultura",
    "description": "",
    "image_url": "",
-   "ph_min": 5.5,
-   "ph_max": 7.5,
-   "ph_optimal_min": 5.8,
+   "ph_min": 5.0,
+   "ph_max": 8.5,
+   "ph_optimal_min": 5.5,
    "ph_optimal_max": 6.8,
    "rainfall_min": 800,
    "rainfall_max": 2000,
    "rainfall_optimal_min": 1000,
    "rainfall_optimal_max": 1500,
    "cycle_months": 6,
-   "temp_min": 18.0,
-   "temp_max": 35.0,
-   "temp_optimal_min": 25.0,
-   "temp_optimal_max": 30.0,
+   "temp_min": 9,
+   "temp_max": 40,
+   "temp_optimal_min": 22,
+   "temp_optimal_max": 30,
    "elevation_min": 0,
    "elevation_max": 1200,
    "elevation_optimal_min": 0,
-   "elevation_optimal_max": 800,
+   "elevation_optimal_max": 1000,
    "optimal_soil_texture": [
     "sandy loam",
     "loam"
@@ -508,7 +508,7 @@
    "acid_tolerance": "rendah",
    "salinity_tolerance": "rendah",
    "al_tolerance": false,
-   "reference": "FAO Ecocrop; Dinas Pertanian Demak"
+   "reference": "Ditjen Hortikultura (2010) via BSIP Banten; batas dari FAO EcoCrop (EcoCrop_DB.csv), Solanum melongena, kode 1965"
   }
  },
  {
@@ -538,21 +538,21 @@
    "image_url": "",
    "ph_min": 5.0,
    "ph_max": 8.0,
-   "ph_optimal_min": 5.5,
-   "ph_optimal_max": 7.0,
-   "rainfall_min": 1200,
-   "rainfall_max": 3000,
+   "ph_optimal_min": 5.0,
+   "ph_optimal_max": 8.0,
+   "rainfall_min": 640,
+   "rainfall_max": 4290,
    "rainfall_optimal_min": 1500,
-   "rainfall_optimal_max": 2500,
+   "rainfall_optimal_max": 2400,
    "cycle_months": 12,
-   "temp_min": 18.0,
-   "temp_max": 32.0,
-   "temp_optimal_min": 22.0,
-   "temp_optimal_max": 28.0,
+   "temp_min": 18,
+   "temp_max": 28,
+   "temp_optimal_min": 20,
+   "temp_optimal_max": 27,
    "elevation_min": 0,
    "elevation_max": 1200,
-   "elevation_optimal_min": null,
-   "elevation_optimal_max": null,
+   "elevation_optimal_min": 0,
+   "elevation_optimal_max": 800,
    "optimal_soil_texture": [
     "loam",
     "clay loam"
@@ -567,7 +567,7 @@
    "acid_tolerance": "sedang",
    "salinity_tolerance": "rendah",
    "al_tolerance": false,
-   "reference": "Balittri; FAO Ecocrop"
+   "reference": "Ferry, Towaha & Rusli (Balittro); Krisnawati, Kallio & Kanninen (2011) CIFOR"
   }
  },
  {

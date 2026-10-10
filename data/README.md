@@ -31,3 +31,8 @@ Harga dari sumber selain BPS. Kalau `ganti_data_bps` = `ya`, seluruh data BPS ta
   (berlaku 31 Jan 2025). Harga BPS "ketela pohon" (~Rp4.900/kg pada 2024) kemungkinan untuk singkong
   konsumsi di pasar perdesaan, sehingga keuntungan singkong menjadi tidak realistis (84–109 juta/ha).
   Laporan yang sama menyebut harga di tingkat petani bisa di bawah Rp1.000/kg.
+
+## harga_kapur.csv
+Harga kapur per kg (Rp), rentang min–maks. Saat ini hanya **dolomit**: Rp1.320–3.000/kg (karung 50 kg,
+agregator harga e-commerce, 26 Mar 2026; kode P13 sheet "3_Param Ekonomi Kapur"). Harga kalsit dan
+kapur tohor yang ada di sheet berasal dari konteks tambang, jadi tidak dipakai.

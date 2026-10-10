@@ -11,8 +11,8 @@ def _item(h, crop, kondisi):
         kondisi, profil, crop.nama, h["rincian"],
         musim_tanam_mm=h.get("musim_tanam_mm"), mulai_tanam=h.get("mulai_tanam"))
     skor = round(skor_efektif(h) / 100, 2)
-    label, detail = get_confidence(kondisi["kualitas_data"]["skor"], h.get("peringkat_ml"),
-                                   h.get("confidence"))
+    label, detail = get_confidence(h.get("confidence"), kondisi.get("sumber_data"),
+                                   kondisi["kualitas_data"]["skor"])
     return {
         # --- kunci lama ---
         "id": crop.slug,
@@ -34,7 +34,9 @@ def _item(h, crop, kondisi):
         # skor jika mulai tanam di bulan Jan..Des (0-1); null untuk tanaman tahunan
         "skor_per_bulan": ([round(x / 100, 2) for x in h["skor_per_bulan"]]
                            if h.get("skor_per_bulan") else None),
-        "sumber_skor": "hybrid" if h.get("skor_akhir") is not None else "aturan",
+        # "ml" = skor aturan dikoreksi model (saat ini cabai rawit), "aturan" = rule-based
+        "sumber_skor": h.get("sumber_skor_tanaman") or "aturan",
+        "di_luar_rentang_latih": bool(h.get("di_luar_rentang_latih")),
         "detail_kepercayaan": detail,
         "ekonomi": ekonomi.estimasi(crop, kondisi.get("luas_lahan_m2")),
     }

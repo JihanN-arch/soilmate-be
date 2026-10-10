@@ -20,6 +20,8 @@ class Command(BaseCommand):
     help = "Isi/perbarui tabel Crop dari models/data.py (field ekonomi yang sudah diisi tidak ditimpa)."
 
     def handle(self, *args, **options):
+        from ml_lib.rule_based_scorer import load_profiles
+        profil_seed = {p["crop_code"]: p for p in load_profiles()}
         for slug, crop in TANAMAN_DATA.items():
             obj, _ = Crop.objects.update_or_create(
                 slug=slug,
@@ -27,6 +29,19 @@ class Command(BaseCommand):
                     "nama", "nama_latin", "deskripsi", "jenis_tanaman", "umur_panen",
                     "produktivitas_tanaman", "cara_budidaya", "manfaat", "syarat_tumbuh")},
             )
+            profil = profil_seed.get(slug)
+            if profil:
+                # samakan angka tampilan dengan profil penilaian di ml_lib/seed.json
+                st = dict(obj.syarat_tumbuh or {})
+                st["ph"] = {"min": profil["ph_min"], "max": profil["ph_max"]}
+                st["elevasi"] = {"min": profil.get("elevation_min"), "max": profil.get("elevation_max")}
+                st["suhu"] = {"min": profil["temp_min"], "max": profil["temp_max"]}
+                st["curah_hujan"] = {"min": profil["rainfall_min"], "max": profil["rainfall_max"],
+                                     "satuan": "mm per musim tanam"}
+                if profil.get("reference"):
+                    st["referensi"] = profil["reference"]
+                obj.syarat_tumbuh = st
+                obj.save(update_fields=["syarat_tumbuh"])
             if obj.produktivitas_min_ton_ha is None:
                 pmin, pmax = parse_produktivitas(crop["produktivitas_tanaman"])
                 obj.produktivitas_min_ton_ha, obj.produktivitas_max_ton_ha = pmin, pmax

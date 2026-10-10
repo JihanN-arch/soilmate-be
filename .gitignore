@@ -16,3 +16,8 @@ nusa_crop_gee_key.json
 # sqlite lokal
 *.sqlite3-wal
 *.sqlite3-shm
+
+.venv/
+.env.*
+*service-account*.json
+*-key.json

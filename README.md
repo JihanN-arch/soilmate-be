@@ -9,7 +9,7 @@ pip install -r requirements.txt
 export DATABASE_URL=sqlite:///db.sqlite3 DJANGO_SECRET_KEY=dev DJANGO_DEBUG=True DJANGO_ALLOWED_HOSTS=*
 python manage.py migrate
 python manage.py seed_crop
-python manage.py test recommendation      # 45 tes, semua API eksternal di-mock
+python manage.py test recommendation      # 48 tes, semua API eksternal di-mock
 python manage.py runserver
 ```
 
@@ -114,9 +114,10 @@ Dua bentuk body (isi salah satu dari `dosis_ton_ha` atau `target_ph`):
 Respons: `ph_awal`, `ph_baru`, `kebutuhan_kapur {dosis_ton_ha, luas_lahan_m2, total_kg, harga_per_kg, perkiraan_biaya}`, `perubahan_skor` `[{id, crop_slug, nama, sebelum, sesudah, selisih}]`, `rekomendasi_baru` (format sama dengan rekomendasi), `detail_ml`, `catatan`.
 
 - `501 belum_tersedia` selama tim ML belum membuat `ml_lib/pengapuran.py` (template: `ml_lib/pengapuran.py.contoh`, kontrak: `recommendation/services/pengapuran.py`).
+- **Modul asli tim ML sudah terpasang** (`ml_lib/pengapuran.py`). `detail_ml` berisi antara lain `dosis_penetral_al_ton_ha` (kebutuhan minimal untuk menetralkan aluminium), `al_dd_awal/baru`, `estimasi_lama_efek_tahun`, `tekstur_dipakai`. C-organik hanya dikirim ke modul kalau berasal dari uji tanah.
 - **Mode contoh (mock):** set env `NUSACROP_PENGAPURAN_CONTOH=True` untuk memakai angka contoh selama modul ML belum ada. Respons membawa `mode_contoh: true` dan catatan "ANGKA CONTOH"; FE wajib menampilkan labelnya. Begitu `ml_lib/pengapuran.py` ada, modul asli otomatis dipakai (`mode_contoh: false`) tanpa ubah kode. **Matikan sebelum demo ke juri** kalau modul asli belum ada.
 - `409` riwayat lama (dibuat sebelum fitur ini) tidak menyimpan hujan bulanan/tekstur; minta pengguna analisis ulang.
-- `perkiraan_biaya` hanya terisi kalau env `HARGA_KAPUR_PER_KG` di-set.
+- Biaya kapur: `kebutuhan_kapur.harga_per_kg_rentang`, `perkiraan_biaya_rentang` (luas lahan), `perkiraan_biaya_per_ha_rentang`, `sumber_harga`, `tanggal_harga`, `kemasan`. Harga dari `data/harga_kapur.csv` (saat ini hanya dolomit, Rp1.320–3.000/kg); kalsit dan kapur tohor `null`. Env `HARGA_KAPUR_PER_KG` (opsional) menimpa untuk semua jenis.
 
 ### Cuaca & ekonomi
 

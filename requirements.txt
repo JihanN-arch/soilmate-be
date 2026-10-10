@@ -19,7 +19,6 @@ idna==3.18
 joblib==1.5.3
 numpy==2.5.1
 packaging==26.3
-pandas==3.0.3
 proto-plus==1.28.3
 protobuf==7.35.1
 psycopg2-binary==2.9.12
@@ -32,7 +31,6 @@ requests==2.34.2
 scikit-learn==1.9.0
 scipy==1.18.0
 six==1.17.0
-soiltexture==1.0.4
 sqlparse==0.5.5
 threadpoolctl==3.6.0
 tzdata==2026.3

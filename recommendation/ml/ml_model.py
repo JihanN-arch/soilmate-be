@@ -11,10 +11,12 @@ ML bisa menambah fitur kapan saja tanpa BE diubah.
 
 Output per tanaman yang dipakai BE:
   wajib   : crop_code, skor_aturan (0-100), rincian, mulai_tanam, musim_tanam_mm,
-            confidence (0-1 atau None)
+            confidence (0-1 kestabilan skor; None di ml_lib lama)
   opsional: skor_akhir (0-100)    -> kalau ada, dipakai untuk urutan & skor
             skor_per_bulan (12)   -> kalau tidak ada, BE menghitungnya sendiri
                                      dengan memanggil recommend(mulai=0..11)
+            sumber_skor_tanaman   -> "ml" | "aturan"
+            di_luar_rentang_latih -> True kalau input di luar data latih model
 
 NDVI sengaja TIDAK dikirim ke parameter `ndvi` (di training masih sintetik).
 NDVI asli tersedia sebagai `ndvi_aktual` kalau model menerimanya.
@@ -58,7 +60,8 @@ def get_profile(slug):
 
 
 def kelas_model():
-    return set(_model.kelas_model)
+    """Hanya untuk ml_lib lama (XGBoost per kelas); ml_lib baru tidak punya."""
+    return set(getattr(_model, "kelas_model", []) or [])
 
 
 def tahunan(slug):
@@ -80,13 +83,6 @@ def _fitur_tambahan(kondisi):
     return hasil
 
 
-def _peringkat_ml(hasil):
-    """{crop_code: peringkat_ML (1 = tertinggi)} untuk tanaman yang dikenal model."""
-    dikenal = [h for h in hasil if h.get("confidence") is not None]
-    dikenal.sort(key=lambda h: h["confidence"], reverse=True)
-    return {h["crop_code"]: i for i, h in enumerate(dikenal, start=1)}
-
-
 def predict(kondisi_lahan, bulan_tanam=None, top_k=5):
     """bulan_tanam: 1-12 atau None.
 
@@ -106,9 +102,16 @@ def predict(kondisi_lahan, bulan_tanam=None, top_k=5):
     )
     try:
         semua = _model.recommend(**argumen, top_k=None)
+        # ml_lib baru mengirim skor_per_bulan sendiri; ml_lib lama tidak, jadi
+        # BE menghitungnya dengan memanggil recommend(mulai=0..11).
         perlu_kalender = any(h.get("skor_per_bulan") is None for h in semua)
-        per_bulan = ([_model.recommend(**argumen, top_k=None, mulai=i) for i in range(12)]
-                     if perlu_kalender or bulan_tanam else None)
+        if perlu_kalender:
+            per_bulan = [_model.recommend(**argumen, top_k=None, mulai=i) for i in range(12)]
+        elif bulan_tanam:
+            per_bulan = {int(bulan_tanam) - 1:
+                         _model.recommend(**argumen, top_k=None, mulai=int(bulan_tanam) - 1)}
+        else:
+            per_bulan = None
     except ValueError as e:
         raise PrediksiGagal(f"Model gagal memproses data: {e}") from e
 
@@ -122,7 +125,6 @@ def predict(kondisi_lahan, bulan_tanam=None, top_k=5):
                 h["skor_per_bulan"] = skor_bulan.get(h["crop_code"])
 
     semua.sort(key=skor_efektif, reverse=True)
-    peringkat = _peringkat_ml(semua)
     kalender = {h["crop_code"]: h.get("skor_per_bulan") for h in semua}
 
     daftar_bulan, bulan = None, None
@@ -132,7 +134,6 @@ def predict(kondisi_lahan, bulan_tanam=None, top_k=5):
 
     for daftar in (semua, daftar_bulan or []):
         for h in daftar:
-            h["peringkat_ml"] = peringkat.get(h["crop_code"])
             h["skor_per_bulan"] = kalender.get(h["crop_code"])
             # Tanaman tahunan (kemiri): semua jendela hujan sama, jadi bulan tanam
             # terbaik & kalender dari scorer tidak bermakna.

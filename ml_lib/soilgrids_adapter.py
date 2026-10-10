@@ -1,21 +1,9 @@
-import soiltexture
-
-
-def usda_texture_class(sand, silt, clay):
-    """
-    Klasifikasi kelas tekstur USDA dari persentase pasir (sand), debu (silt),
-    dan liat (clay). Mengembalikan salah satu dari 12 kelas USDA.
-
-    Menggunakan library `soiltexture` (batas segitiga USDA tervalidasi) alih-alih
-    implementasi batas manual, agar akurat termasuk pada titik-titik dekat batas
-    antar-kelas yang rawan salah. Library hanya perlu sand% dan clay% (silt
-    dihitung sebagai sisanya).
-    """
-    total = sand + silt + clay
-    if total > 0:
-        sand = sand / total * 100
-        clay = clay / total * 100
-    return soiltexture.getTexture(sand, clay, classification="USDA")
+# usda_texture_class() dulu memanggil library PyPI `soiltexture`, tapi library
+# itu GPLv3 dan akan menular ke seluruh proyek (LICENSE kita MIT). Sekarang
+# dipakai implementasi sendiri di ml_lib/usda_texture.py; lihat docstring modul
+# itu untuk dasar aturannya. Nama dipertahankan di sini supaya semua pemanggil
+# lama (build_land_pool.py, fetch_land_data.py, sanity_cases.py) tidak berubah.
+from .usda_texture import usda_texture_class
 
 
 def parse_soilgrids_response(raw_json, depth="5-15cm"):

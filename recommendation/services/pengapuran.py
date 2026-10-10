@@ -53,6 +53,32 @@ from .data_tanah import normalisasi_uji_tanah
 from .errors import DataTidakLengkap, PrediksiGagal, SumberDataGagal
 
 
+def _muat_harga_kapur():
+    """{jenis: {min, maks, tanggal, kemasan, sumber}} dari data/harga_kapur.csv."""
+    import csv
+    from pathlib import Path
+    path = Path(settings.BASE_DIR) / "data" / "harga_kapur.csv"
+    if not path.exists():
+        return {}
+    with open(path, newline="", encoding="utf-8") as f:
+        return {r["jenis_kapur"]: {"min": int(r["harga_min_per_kg"]), "maks": int(r["harga_maks_per_kg"]),
+                                   "tanggal": r.get("tanggal"), "kemasan": r.get("kemasan"),
+                                   "sumber": r.get("sumber")}
+                for r in csv.DictReader(f)}
+
+
+HARGA_KAPUR = _muat_harga_kapur()
+
+
+def _harga_kapur(jenis):
+    """Env HARGA_KAPUR_PER_KG (satu angka, semua jenis) mengalahkan data CSV."""
+    tetap = getattr(settings, "HARGA_KAPUR_PER_KG", None)
+    if tetap:
+        return {"min": tetap, "maks": tetap, "tanggal": None, "kemasan": None,
+                "sumber": "env HARGA_KAPUR_PER_KG"}
+    return HARGA_KAPUR.get(jenis)
+
+
 class PengapuranBelumTersedia(Exception):
     pass
 
@@ -133,7 +159,11 @@ def simulasi_kapur(riwayat=None, uji_tanah=None, lat=None, lon=None, dosis_ton_h
 
     if riwayat is not None:
         kondisi_awal = _kondisi_dari_riwayat(riwayat)
-        ph_awal, tekstur, oc = riwayat.ph_tanah, riwayat.tekstur_kelas, riwayat.organic_carbon
+        ph_awal, tekstur = riwayat.ph_tanah, riwayat.tekstur_kelas
+        # C-organik hanya dikirim kalau dari uji tanah (permintaan tim ML: nilai
+        # SoilGrids terlalu tinggi untuk rumus kapur dan menggandakan dosis).
+        oc = (riwayat.organic_carbon
+              if (riwayat.sumber_data or {}).get("organic_carbon") == "uji_tanah" else None)
         luas = luas_lahan_m2 or riwayat.luas_lahan_m2
     else:
         uji = normalisasi_uji_tanah(uji_tanah)
@@ -173,7 +203,11 @@ def simulasi_kapur(riwayat=None, uji_tanah=None, lat=None, lon=None, dosis_ton_h
         rekomendasi_baru = format_daftar(baru[:5], kondisi_baru)
 
     total_kg = round(dosis * 1000 * luas / 10_000) if luas else None
-    harga = getattr(settings, "HARGA_KAPUR_PER_KG", None)
+    harga = _harga_kapur(jenis_kapur)
+    biaya_rentang = ({"min": round(total_kg * harga["min"]), "max": round(total_kg * harga["maks"])}
+                     if harga and total_kg else None)
+    biaya_ha = ({"min": round(dosis * 1000 * harga["min"]), "max": round(dosis * 1000 * harga["maks"])}
+                if harga else None)
 
     return {
         # True = angka dari modul CONTOH, bukan model; FE wajib menampilkan label
@@ -185,13 +219,27 @@ def simulasi_kapur(riwayat=None, uji_tanah=None, lat=None, lon=None, dosis_ton_h
             "dosis_ton_ha": round(dosis, 2),
             "luas_lahan_m2": luas,
             "total_kg": total_kg,
-            "harga_per_kg": harga,
-            "perkiraan_biaya": round(total_kg * harga) if total_kg and harga else None,
+            # rentang harga & biaya (pakai ini); None kalau harga jenis kapur ini belum ada
+            "harga_per_kg_rentang": {"min": harga["min"], "max": harga["maks"]} if harga else None,
+            "perkiraan_biaya_rentang": biaya_rentang,          # untuk luas lahan
+            "perkiraan_biaya_per_ha_rentang": biaya_ha,
+            "sumber_harga": harga["sumber"] if harga else None,
+            "tanggal_harga": harga["tanggal"] if harga else None,
+            "kemasan": harga["kemasan"] if harga else None,
+            # lama (satu angka = nilai tengah rentang), dipertahankan untuk FE lama
+            "harga_per_kg": round((harga["min"] + harga["maks"]) / 2) if harga else None,
+            "perkiraan_biaya": (round((biaya_rentang["min"] + biaya_rentang["max"]) / 2)
+                                if biaya_rentang else None),
         },
         "perubahan_skor": perubahan,
         "rekomendasi_baru": rekomendasi_baru,
-        "detail_ml": {k: v for k, v in hasil_ml.items() if k not in ("ph_baru", "dosis_ton_ha")},
-        "catatan": catatan_data + [
-            "Perkiraan. Efek kapur butuh beberapa minggu dan perlu diulang berkala. "
-            "Sebaiknya lakukan uji tanah sebelum mengapur."],
+        "detail_ml": {k: v for k, v in hasil_ml.items()
+                      if k not in ("ph_baru", "dosis_ton_ha", "catatan")},
+        # catatan dari modul ML sudah ditulis untuk petani; tampilkan di depan
+        "catatan": catatan_data + list(hasil_ml.get("catatan") or []) + (
+            [f"Harga {jenis_kapur.replace('_', ' ')} belum tersedia, jadi perkiraan biaya tidak dihitung."]
+            if not harga else
+            [f"Harga kapur dari {harga['sumber']} ({harga['kemasan'] or 'per kg'}), bisa berbeda "
+             "menurut lokasi dan ongkos kirim."]) + [
+            "Efek kapur butuh beberapa minggu dan perlu diulang berkala."],
     }
