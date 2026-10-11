@@ -707,3 +707,52 @@ class KepercayaanBaruTes(TestCase):
             r.sumber_data = {"organic_carbon": "uji_tanah"}
             simulasi_kapur(riwayat=r, target_ph=6.0)
             self.assertEqual(diterima["organic_carbon"], 53.0)
+
+
+class StatusLahanTes(DasarTes):
+    def setUp(self):
+        super().setUp()
+        p = patch("recommendation.services.apis.openmeteo.fetch_prakiraan", return_value={"harian": []})
+        p.start()
+        self.addCleanup(p.stop)
+
+    def _lahan(self, tanggal_tanam, obs=()):
+        from .models import LahanTanam, ObservasiNdvi
+        lahan = LahanTanam.objects.create(anonymous_id="a", crop_id="jagung", lat=LAT, lon=LON,
+                                          tanggal_tanam=tanggal_tanam)
+        for d, n in obs:
+            ObservasiNdvi.objects.create(lahan=lahan, tanggal=d, ndvi=n)
+        return lahan
+
+    def test_dijadwalkan(self):
+        from .services.monitoring import analisis_tren
+        besok = date.today() + timedelta(days=20)
+        self.assertEqual(analisis_tren([], besok)[0], "dijadwalkan")
+        lahan = self._lahan(besok, [(date.today() - timedelta(days=3), 0.3)])   # baseline sebelum tanam
+        with patch("recommendation.services.jobs.kirim"):
+            d = self.api.get(f"/api/lahan/{lahan.id}/?anonymous_id=a").json()
+        self.assertEqual(d["kesehatan"], "dijadwalkan")
+        self.assertEqual(d["hari_menuju_tanam"], 20)
+        self.assertIsNone(d["hari_setelah_tanam"])
+        self.assertIn("Dijadwalkan tanam", d["pesan_status"])
+        self.assertEqual((d["jumlah_citra_setelah_tanam"], d["grafik_siap"]), (0, False))
+
+    def test_menunggu_foto_kedua(self):
+        tanam = date.today() - timedelta(days=10)
+        lahan = self._lahan(tanam, [(tanam + timedelta(days=4), 0.2)])
+        lahan.kesehatan = "belum_cukup_data"
+        lahan.save()
+        with patch("recommendation.services.jobs.kirim") as kirim:
+            d = self.api.get(f"/api/lahan/{lahan.id}/?anonymous_id=a").json()
+            self.assertTrue(kirim.called)                     # dipantau otomatis saat dibuka
+        self.assertEqual(d["kesehatan"], "belum_cukup_data")
+        self.assertIn("1 foto lagi", d["pesan_status"])
+        self.assertFalse(d["grafik_siap"])
+
+    def test_patch_tanggal_hitung_ulang(self):
+        lahan = self._lahan(date.today() + timedelta(days=5))
+        with patch("recommendation.services.jobs.kirim"):
+            r = self.api.patch(f"/api/lahan/{lahan.id}/?anonymous_id=a",
+                               {"tanggal_tanam": (date.today() - timedelta(days=1)).isoformat()}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(r.json()["kesehatan"], "belum_cukup_data")

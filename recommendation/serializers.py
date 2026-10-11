@@ -255,13 +255,19 @@ class LahanTanamSerializer(serializers.ModelSerializer):
     riwayat_id = serializers.SerializerMethodField()
     hari_setelah_tanam = serializers.SerializerMethodField()
     ndvi_terbaru = serializers.SerializerMethodField()
+    kesehatan = serializers.SerializerMethodField()
+    pesan_status = serializers.SerializerMethodField()
+    hari_menuju_tanam = serializers.SerializerMethodField()
+    jumlah_citra_setelah_tanam = serializers.SerializerMethodField()
+    grafik_siap = serializers.SerializerMethodField()
 
     class Meta:
         model = LahanTanam
         fields = ["id", "nama", "nama_lokasi", "crop", "crop_slug", "crop_nama", "nama_tanaman",
                   "rekomendasi", "rekomendasi_id", "riwayat_id", "lat", "lon", "radius_m",
                   "tanggal_tanam", "hari_setelah_tanam", "luas_lahan_m2", "status", "kesehatan", "peringatan",
-                  "ndvi_terbaru", "terakhir_dipantau", "dibuat_pada"]
+                  "ndvi_terbaru", "terakhir_dipantau", "dibuat_pada",
+                  "pesan_status", "hari_menuju_tanam", "jumlah_citra_setelah_tanam", "grafik_siap"]
         # yang boleh diubah lewat PATCH: nama, tanggal_tanam, luas_lahan_m2, status
         read_only_fields = ["crop", "rekomendasi", "lat", "lon", "radius_m", "kesehatan",
                             "peringatan", "terakhir_dipantau", "dibuat_pada"]
@@ -269,9 +275,33 @@ class LahanTanamSerializer(serializers.ModelSerializer):
     def get_riwayat_id(self, obj):
         return obj.rekomendasi.riwayat_id if obj.rekomendasi_id else None
 
+    def _status(self, obj):
+        from .services.monitoring import status_tampilan
+        cache = self.context.setdefault("_status", {})
+        if obj.pk not in cache:
+            cache[obj.pk] = status_tampilan(obj)
+        return cache[obj.pk]
+
+    def get_kesehatan(self, obj):
+        return self._status(obj)["kesehatan"]
+
+    def get_pesan_status(self, obj):
+        return self._status(obj)["pesan_status"]
+
+    def get_hari_menuju_tanam(self, obj):
+        return self._status(obj)["hari_menuju_tanam"]
+
+    def get_jumlah_citra_setelah_tanam(self, obj):
+        return self._status(obj)["jumlah_citra_setelah_tanam"]
+
+    def get_grafik_siap(self, obj):
+        return self._status(obj)["grafik_siap"]
+
     def get_hari_setelah_tanam(self, obj):
+        """None kalau tanggal tanam masih di masa depan (pakai hari_menuju_tanam)."""
         from django.utils import timezone
-        return (timezone.localdate() - obj.tanggal_tanam).days
+        hari = (timezone.localdate() - obj.tanggal_tanam).days
+        return hari if hari >= 0 else None
 
     def get_ndvi_terbaru(self, obj):
         o = obj.observasi.order_by("-tanggal").first()

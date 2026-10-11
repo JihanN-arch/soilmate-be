@@ -18,6 +18,7 @@ from .serializers import (FeedbackSerializer, LahanTanamCreateSerializer, LahanT
                           UsabilityEventSerializer)
 from .services import cuaca, ekonomi, jobs
 from .services.detail_crop import get_crop_detail
+from .services.monitoring import hitung_ulang
 from .services.errors import DataTidakLengkap, PrediksiGagal, SumberDataGagal
 from .services.pengapuran import PengapuranBelumTersedia, RiwayatTidakLengkap, simulasi_kapur
 from .services.recommendation_services import get_recommendation
@@ -185,6 +186,7 @@ def riwayat_detail(request, pk):
 
 # ------------------------------------------------------------ monitoring
 JEDA_PANTAU_MANUAL = timedelta(hours=6)
+PANTAU_OTOMATIS = timedelta(hours=24)
 
 
 @api_view(["GET", "POST"])
@@ -224,6 +226,12 @@ def lahan_detail(request, pk):
         s = LahanTanamSerializer(lahan, data=request.data, partial=True)
         s.is_valid(raise_exception=True)
         s.save()
+        if "tanggal_tanam" in request.data:
+            hitung_ulang(lahan)
+    elif lahan.status == "aktif" and (lahan.terakhir_dipantau is None or
+                                      timezone.now() - lahan.terakhir_dipantau > PANTAU_OTOMATIS):
+        # tanpa cron pun data lahan tetap diperbarui saat dibuka (maks. sekali sehari)
+        jobs.kirim("pantau_lahan", lahan.id)
 
     body = LahanTanamSerializer(lahan).data
     body["observasi"] = ObservasiNdviSerializer(lahan.observasi.all(), many=True).data
