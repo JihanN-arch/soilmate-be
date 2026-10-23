@@ -26,6 +26,7 @@ class LahanTanam(models.Model):
     luas_lahan_m2 = models.FloatField(null=True, blank=True)
     tanggal_tanam = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="aktif")
+    tanggal_selesai = models.DateField(null=True, blank=True)   # diisi saat status keluar dari "aktif"
 
     kesehatan = models.CharField(max_length=30, default="belum_cukup_data")
     peringatan = models.JSONField(default=list)
@@ -61,7 +62,10 @@ class FeedbackPengguna(models.Model):
     jenis = models.CharField(max_length=20, choices=JENIS_CHOICES)
     rekomendasi = models.ForeignKey(
         RiwayatRekomendasi, null=True, blank=True, on_delete=models.SET_NULL)
-    lahan = models.ForeignKey(LahanTanam, null=True, blank=True, on_delete=models.SET_NULL)
+    lahan = models.ForeignKey(LahanTanam, null=True, blank=True, on_delete=models.SET_NULL,
+                              related_name="feedback")
+    # salinan, supaya data penelitian tetap utuh walau lahan/riwayat dihapus
+    crop_slug = models.CharField(max_length=50, null=True, blank=True)
     ditanam = models.BooleanField(null=True, blank=True)
     hasil = models.CharField(max_length=10, choices=HASIL_CHOICES, null=True, blank=True)
     hasil_panen_kg = models.FloatField(null=True, blank=True)

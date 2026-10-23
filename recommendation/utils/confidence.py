@@ -11,6 +11,7 @@ terpisah.
   Rendah : confidence < 0,50
 
 Turun satu tingkat kalau data iklim atau elevasi berasal dari data cadangan.
+Selalu Rendah kalau pH/tekstur hanya perkiraan rata-rata wilayah (~5 km).
 
 Cadangan untuk ml_lib lama (confidence None): label dari kualitas data saja.
 """
@@ -39,6 +40,10 @@ def get_confidence(confidence_ml, sumber_data=None, kualitas_skor=None):
     label = dasar
     if alasan_turun and TINGKAT.index(label) > 0:
         label = TINGKAT[TINGKAT.index(label) - 1]
+    wilayah = [k for k in ("ph", "tekstur") if sumber_data.get(k) == "perkiraan_wilayah"]
+    if wilayah:   # data tanah hanya rata-rata wilayah ~5 km -> selalu Rendah
+        label = "Rendah"
+        alasan_turun = alasan_turun + [f"data {k} perkiraan wilayah" for k in wilayah]
 
     return label, {
         "metode": metode,

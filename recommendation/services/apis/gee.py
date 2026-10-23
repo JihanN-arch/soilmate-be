@@ -134,7 +134,10 @@ SOILGRIDS_GEE = {
 KEDALAMAN_TANAH = "5-15cm"           # sama dengan data training model
 
 
-def fetch_tanah(lat, lon):
+RADIUS_WILAYAH_M = 5000   # cadangan terakhir: rata-rata wilayah, kepercayaan rendah
+
+
+def fetch_tanah(lat, lon, radii=(150, 600)):
     """Data tanah SoilGrids lewat GEE. Jauh lebih cepat dan stabil dari REST.
 
     Rata-rata dalam radius 150 m; kalau titiknya tidak punya data (permukiman,
@@ -151,13 +154,21 @@ def fetch_tanah(lat, lon):
         return img.reduceRegion(ee.Reducer.mean(), area, 250).getInfo() or {}
 
     hasil = {}
-    for radius in (150, 600):
+    for radius in radii:
         mentah = _dengan_retry("GEE (SoilGrids)", lambda: jalan(radius))
         hasil = {field: None if mentah.get(nama) is None else round(mentah[nama] / faktor, 3)
                  for nama, (field, faktor) in SOILGRIDS_GEE.items()}
         if hasil["ph"] is not None and hasil["clay"] is not None:
             break
     hasil.update(ph_q05=None, ph_q95=None, _sumber="soilgrids_gee")
+    return hasil
+
+
+def fetch_tanah_wilayah(lat, lon):
+    """Rata-rata SoilGrids dalam radius 5 km, untuk titik tanpa data tanah
+    (permukiman, badan air) dan pengguna tanpa alat ukur pH."""
+    hasil = fetch_tanah(lat, lon, radii=(RADIUS_WILAYAH_M,))
+    hasil["_perkiraan_wilayah_km"] = RADIUS_WILAYAH_M / 1000
     return hasil
 
 

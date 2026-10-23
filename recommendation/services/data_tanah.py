@@ -91,7 +91,24 @@ def _ambil_api(lat, lon):
             logger.info("SoilGrids via GEE kosong di (%s, %s), mencoba REST", lat, lon)
         except SumberDataGagal as e:
             logger.warning("SoilGrids via GEE gagal: %s; mencoba REST", e)
-    return _fetch_dengan_sekitar(lat, lon)
+    try:
+        data = _fetch_dengan_sekitar(lat, lon)
+    except SumberDataGagal:
+        data = {}
+    if _lengkap(data) or not gee.kredensial_tersedia():
+        if not data:
+            raise SumberDataGagal("SoilGrids tidak dapat diakses")
+        return data
+    try:   # cadangan terakhir: rata-rata wilayah 5 km
+        wil = gee.fetch_tanah_wilayah(lat, lon)
+        wil["tekstur_kelas"] = soilgrids.tekstur_dari_fraksi(wil)
+        if _lengkap(wil):
+            return wil
+    except SumberDataGagal as e:
+        logger.warning("Perkiraan wilayah SoilGrids gagal: %s", e)
+    if not data:
+        raise SumberDataGagal("SoilGrids tidak dapat diakses")
+    return data
 
 
 def _fetch_dengan_sekitar(lat, lon):
@@ -144,14 +161,25 @@ def resolve_tanah(lat, lon, uji_tanah=None):
 
     if payload:
         dari_sekitar = set(payload.get("_terisi_dari_sekitar", []))
+        wilayah_km = payload.get("_perkiraan_wilayah_km")
+        asal_payload = "perkiraan_wilayah" if wilayah_km else asal_api
+        dipakai = []
         for f in FIELD_TANAH + ["ph_q05", "ph_q95"]:
             if data.get(f) is None and payload.get(f) is not None:
                 data[f] = payload[f]
                 if f in FIELD_TANAH:
-                    asal[f] = "api_sekitar" if f in dari_sekitar else asal_api
+                    asal[f] = "api_sekitar" if f in dari_sekitar else asal_payload
+                    dipakai.append(f)
         if data.get("tekstur_kelas") is None and payload.get("tekstur_kelas"):
             data["tekstur_kelas"] = payload["tekstur_kelas"]
-            asal["tekstur"] = "api_sekitar" if dari_sekitar & {"sand", "silt", "clay"} else asal_api
+            asal["tekstur"] = "api_sekitar" if dari_sekitar & {"sand", "silt", "clay"} else asal_payload
+            dipakai.append("tekstur")
+        if wilayah_km and ({"ph", "tekstur"} & set(dipakai)):
+            catatan.append(
+                f"Titik ini tidak punya data tanah (mis. permukiman atau badan air), jadi "
+                f"{' dan '.join(n for k, n in (('ph', 'pH'), ('tekstur', 'tekstur')) if k in dipakai)} "
+                f"memakai perkiraan rata-rata wilayah sekitar {wilayah_km:g} km. Tingkat kepercayaan "
+                "rendah; ukur pH tanah untuk hasil yang lebih tepat.")
 
     # isi field wajib yang masih kosong dari sel tetangga, per field
     for f, cek in (("ph", lambda p: p.get("ph") is not None),

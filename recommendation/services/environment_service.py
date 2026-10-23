@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 NILAI_ASAL = {
     "uji_tanah": 1.0, "api": 0.8, "cache": 0.8, "cache_kedaluwarsa": 0.7,
-    "api_sekitar": 0.65, "open_meteo_dem": 0.7, "tetangga": 0.55,
+    "api_sekitar": 0.65, "open_meteo_dem": 0.7, "tetangga": 0.55, "perkiraan_wilayah": 0.4,
 }
 BOBOT_KUALITAS = {"ph": 0.30, "tekstur": 0.20, "iklim": 0.35, "elevasi": 0.15}
 

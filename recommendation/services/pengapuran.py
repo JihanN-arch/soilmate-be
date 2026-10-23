@@ -152,8 +152,26 @@ def _kondisi_dari_lokasi(lat, lon, uji_tanah, ph_awal, tekstur):
     }, tekstur, catatan
 
 
+def _dosis_dari_dana(dana_rp, luas, harga, jenis_kapur):
+    """Dana -> rentang dosis (ton/ha). Hemat = harga tertinggi, banyak = harga terendah."""
+    nama = jenis_kapur.replace("_", " ")
+    if not harga:
+        raise PrediksiGagal(f"Harga {nama} belum tersedia, jadi simulasi berdasarkan dana belum bisa "
+                            "dihitung. Coba pilih dolomit, atau isi target pH / jumlah kapur.")
+    if not luas:
+        raise PrediksiGagal("Isi luas lahan dulu supaya dana bisa dihitung menjadi jumlah kapur.")
+    ha = luas / 10_000
+    hemat = dana_rp / harga["maks"] / 1000 / ha
+    banyak = dana_rp / harga["min"] / 1000 / ha
+    return round(min(hemat, BATAS_DOSIS), 3), round(min(banyak, BATAS_DOSIS), 3), banyak > BATAS_DOSIS
+
+
+BATAS_DOSIS = 20.0   # ton/ha, sama dengan batas input dosis
+
+
 def simulasi_kapur(riwayat=None, uji_tanah=None, lat=None, lon=None, dosis_ton_ha=None,
-                   target_ph=None, jenis_kapur="dolomit", luas_lahan_m2=None):
+                   target_ph=None, jenis_kapur="dolomit", luas_lahan_m2=None, dana_rp=None,
+                   info_lahan=None):
     simulasi, mode_contoh = _fungsi_ml()   # 501 lebih dulu, sebelum memanggil API apa pun
     catatan_data = []
 
@@ -175,14 +193,40 @@ def simulasi_kapur(riwayat=None, uji_tanah=None, lat=None, lon=None, dosis_ton_h
         else:
             catatan_data = ["Tanpa lokasi, perubahan kecocokan tanaman tidak dihitung."]
 
-    try:
-        hasil_ml = simulasi(
-            ph_awal=ph_awal, tekstur_kelas=tekstur, organic_carbon=oc, al_dd=None,
-            dosis_ton_ha=dosis_ton_ha, target_ph=target_ph, jenis_kapur=jenis_kapur)
-        ph_baru = float(hasil_ml["ph_baru"])
-        dosis = float(hasil_ml["dosis_ton_ha"])
-    except (KeyError, TypeError, ValueError) as e:
-        raise PrediksiGagal(f"Simulasi pengapuran gagal: {e}") from e
+    def jalankan(dosis_ton_ha=None, target_ph=None):
+        try:
+            h = simulasi(ph_awal=ph_awal, tekstur_kelas=tekstur, organic_carbon=oc, al_dd=None,
+                         dosis_ton_ha=dosis_ton_ha, target_ph=target_ph, jenis_kapur=jenis_kapur)
+            return h, float(h["ph_baru"]), float(h["dosis_ton_ha"])
+        except (KeyError, TypeError, ValueError) as e:
+            raise PrediksiGagal(f"Simulasi pengapuran gagal: {e}") from e
+
+    harga = _harga_kapur(jenis_kapur)
+    info_dana = None
+    if dana_rp is not None:
+        hemat, banyak, terpotong = _dosis_dari_dana(dana_rp, luas, harga, jenis_kapur)
+        # hasil utama memakai harga tertinggi supaya pH yang dijanjikan tidak berlebihan
+        hasil_ml, ph_baru, dosis = jalankan(dosis_ton_ha=hemat)
+        _, ph_banyak, _ = jalankan(dosis_ton_ha=banyak)
+        kg = lambda d: round(d * 1000 * luas / 10_000)
+        info_dana = {
+            "dana_rp": dana_rp,
+            "dosis_ton_ha_rentang": {"min": round(hemat, 2), "max": round(banyak, 2)},
+            "total_kg_rentang": {"min": kg(hemat), "max": kg(banyak)},
+            "ph_baru_rentang": {"min": round(ph_baru, 2), "max": round(ph_banyak, 2)},
+        }
+        catatan_data.append(
+            f"Dengan dana Rp{dana_rp:,}".replace(",", ".") +
+            f" kamu bisa membeli sekitar {kg(hemat):,}-{kg(banyak):,} kg kapur".replace(",", ".") +
+            f" (tergantung harga di tempatmu). pH diperkirakan naik dari {ph_awal:g} menjadi "
+            f"{ph_baru:.1f}-{ph_banyak:.1f}.")
+        if terpotong:
+            catatan_data.append(f"Dana melebihi dosis wajar ({BATAS_DOSIS:g} ton/ha); "
+                                "simulasi dibatasi pada dosis itu.")
+        if hemat < 0.1:
+            catatan_data.append("Dana ini hanya cukup untuk sedikit sekali kapur, jadi pH hampir tidak berubah.")
+    else:
+        hasil_ml, ph_baru, dosis = jalankan(dosis_ton_ha=dosis_ton_ha, target_ph=target_ph)
 
     perubahan, rekomendasi_baru = [], []
     if kondisi_awal is not None:
@@ -203,7 +247,6 @@ def simulasi_kapur(riwayat=None, uji_tanah=None, lat=None, lon=None, dosis_ton_h
         rekomendasi_baru = format_daftar(baru[:5], kondisi_baru)
 
     total_kg = round(dosis * 1000 * luas / 10_000) if luas else None
-    harga = _harga_kapur(jenis_kapur)
     biaya_rentang = ({"min": round(total_kg * harga["min"]), "max": round(total_kg * harga["maks"])}
                      if harga and total_kg else None)
     biaya_ha = ({"min": round(dosis * 1000 * harga["min"]), "max": round(dosis * 1000 * harga["maks"])}
@@ -212,6 +255,10 @@ def simulasi_kapur(riwayat=None, uji_tanah=None, lat=None, lon=None, dosis_ton_h
     return {
         # True = angka dari modul CONTOH, bukan model; FE wajib menampilkan label
         "mode_contoh": mode_contoh,
+        # lahan yang disimulasikan (untuk judul halaman); None kalau isi data tanah sendiri
+        "lahan": info_lahan,
+        "mode_input": "dana" if dana_rp is not None else ("target_ph" if target_ph is not None else "dosis"),
+        "dana": info_dana,
         "ph_awal": ph_awal,
         "ph_baru": round(ph_baru, 2),
         "jenis_kapur": jenis_kapur,

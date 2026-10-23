@@ -2,6 +2,7 @@
 
     python manage.py test recommendation
 """
+import io
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -33,15 +34,19 @@ P_SAT = "recommendation.services.apis.gee.fetch_satelit"
 GAGAL = SumberDataGagal("down")
 
 
-@override_settings(NUSACROP_PARALEL=False, NUSACROP_JOB_SINKRON=True)
+@override_settings(NUSACROP_PARALEL=False, NUSACROP_JOB_SINKRON=True, NUSACROP_PENGAPURAN_CONTOH=False)
 class DasarTes(TestCase):
     @classmethod
     def setUpTestData(cls):
-        call_command("seed_crop", stdout=open("/dev/null", "w"))
+        call_command("seed_crop", stdout=io.StringIO())
 
     def setUp(self):
         django_cache.clear()  # reset throttle
         self.api = APIClient()
+        # Kunci GEE asli di .env lokal jangan sampai membuat tes memanggil GEE sungguhan.
+        tanpa_gee = patch("recommendation.services.apis.gee.kredensial_tersedia", return_value=False)
+        tanpa_gee.start()
+        self.addCleanup(tanpa_gee.stop)
 
     def body(self, **extra):
         return {"lat": LAT, "lon": LON, "nama_lokasi": "Lahan Uji", "anonymous_id": "anon-1", **extra}
@@ -275,7 +280,7 @@ class UsabilityTes(DasarTes):
         self.assertEqual(per_peserta["P01"]["berhasil"], 1)
         self.assertEqual(sus, {"P01": 100.0, "P02": 50.0})
         self.assertEqual(skor_sus([3] * 10), 50.0)
-        call_command("rekap_usability", stdout=open("/dev/null", "w"))
+        call_command("rekap_usability", stdout=io.StringIO())
 
     def test_throttle_usability_terpisah(self):
         from .views import UsabilityThrottle, log_usability
@@ -538,7 +543,7 @@ class KontrakMlTes(TestCase):
         with patch.object(ml_model._model, "recommend", side_effect=dengan_skor_akhir):
             hasil = ml_model.predict(self.KONDISI)["rekomendasi"]
         self.assertEqual(hasil[0]["crop_code"], "sorgum")
-        call_command("seed_crop", stdout=open("/dev/null", "w"))
+        call_command("seed_crop", stdout=io.StringIO())
         item = format_daftar(hasil[:1], {**self.KONDISI, "kualitas_data": {"skor": 0.8}})[0]
         self.assertEqual((item["skor_kesesuaian"], item["sumber_skor"]), (0.99, "ml"))
 
@@ -652,8 +657,8 @@ class GarisMiringTes(DasarTes):
 
 class DataEkonomiTes(DasarTes):
     def test_muat_data_ekonomi(self):
-        call_command("muat_data_ekonomi", stdout=open("/dev/null", "w"))
-        call_command("muat_data_ekonomi", stdout=open("/dev/null", "w"))  # aman diulang
+        call_command("muat_data_ekonomi", stdout=io.StringIO())
+        call_command("muat_data_ekonomi", stdout=io.StringIO())  # aman diulang
         self.assertGreater(HargaKomoditas.objects.count(), 9_000)
         self.assertEqual(HargaKomoditas.objects.filter(crop_id="jagung", wilayah_kode="00").count(), 36)
 
@@ -696,7 +701,7 @@ class KepercayaanBaruTes(TestCase):
             diterima.update(kw)
             return {"ph_baru": 6.0, "dosis_ton_ha": 2.0}
         palsu.simulasi = sim
-        call_command("seed_crop", stdout=open("/dev/null", "w"))
+        call_command("seed_crop", stdout=io.StringIO())
         r = RiwayatPencarian.objects.create(
             anonymous_id="a", lat=LAT, lon=LON, ph_tanah=5.0, suhu=27, elevasi=30, tekstur_tanah={},
             tekstur_kelas="clay loam", curah_hujan_bulanan=IKLIM["curah_hujan_bulanan"],
@@ -756,3 +761,161 @@ class StatusLahanTes(DasarTes):
                                {"tanggal_tanam": (date.today() - timedelta(days=1)).isoformat()}, format="json")
         self.assertEqual(r.status_code, 200, r.content)
         self.assertEqual(r.json()["kesehatan"], "belum_cukup_data")
+
+
+class RevisiDosenTes(DasarTes):
+    """Masukan dosen (Okt 2026): banyak lahan, tekstur 'tidak tahu', simulasi per lahan, dana."""
+
+    def setUp(self):
+        super().setUp()
+        for p in (patch("recommendation.services.apis.openmeteo.fetch_prakiraan", return_value={"harian": []}),
+                  patch("recommendation.services.jobs.kirim")):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def _analisis(self, nama, ph, luas):
+        with patch(P_TANAH, return_value=dict(TANAH)), patch(P_IKLIM, return_value=IKLIM), \
+                patch(P_SAT, return_value=SATELIT):
+            r = self.api.post("/api/recommend/", self.body(
+                nama_lokasi=nama, luas_lahan_m2=luas,
+                uji_tanah={"ph": ph, "tekstur_kelas": "lempung berliat"}), format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        rek = r.json()["recommendation"]
+        r = self.api.post("/api/lahan/", {"anonymous_id": "anon-1", "rekomendasi_id": rek["rekomendasi"][0]["rekomendasi_id"],
+                                          "tanggal_tanam": date.today().isoformat()}, format="json")
+        self.assertEqual(r.status_code, 201, r.content)
+        return r.json()
+
+    def test_tekstur_tidak_tahu_tidak_ditolak(self):
+        for tekstur in ("tidak_tahu", "Tidak tahu / lewati", "", None):
+            with patch(P_TANAH, return_value=dict(TANAH)), patch(P_IKLIM, return_value=IKLIM), \
+                    patch(P_SAT, return_value=SATELIT):
+                r = self.api.post("/api/recommend/", self.body(uji_tanah={"tekstur_kelas": tekstur}),
+                                  format="json")
+            self.assertEqual(r.status_code, 200, (tekstur, r.content))
+            self.assertIn(r.json()["recommendation"]["kondisi_lahan"]["sumber_data"]["ph"], ("api", "cache"))
+        with patch(P_TANAH, return_value=dict(TANAH)), patch(P_IKLIM, return_value=IKLIM), \
+                patch(P_SAT, return_value=SATELIT):
+            r = self.api.post("/api/recommend/", self.body(uji_tanah={"ph": 5.0, "tekstur_kelas": "tidak_tahu"}),
+                              format="json")
+        kl = r.json()["recommendation"]["kondisi_lahan"]
+        self.assertEqual(kl["sumber_data"]["ph"], "uji_tanah")
+        self.assertIn(kl["sumber_data"]["tekstur"], ("api", "cache"))
+
+    def test_banyak_lahan_dan_simulasi_per_lahan(self):
+        monas = self._analisis("Monas", 5.0, 2500)
+        depok = self._analisis("UI Depok", 5.3, 1000)
+        d = self.api.get(f"/api/lahan/{monas['id']}/?anonymous_id=anon-1")
+        self.assertEqual(d["Cache-Control"], "no-store")
+        self.assertEqual(d.json()["nama_tampilan"], "Monas")
+        for lahan, ph, luas in ((monas, 5.0, 2500), (depok, 5.3, 1000)):
+            r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "anon-1", "lahan_id": lahan["id"],
+                                                       "target_ph": 6.0}, format="json")
+            self.assertEqual(r.status_code, 200, r.content)
+            b = r.json()
+            self.assertEqual(b["ph_awal"], ph)
+            self.assertEqual((b["lahan"]["nama"], b["lahan"]["luas_lahan_m2"]), (lahan["nama_tampilan"], luas))
+            self.assertEqual(b["kebutuhan_kapur"]["luas_lahan_m2"], luas)
+        # lahan orang lain tidak bisa dipakai
+        r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "lain", "lahan_id": monas["id"],
+                                                   "target_ph": 6.0}, format="json")
+        self.assertEqual(r.status_code, 404)
+
+    def test_simulasi_dari_dana(self):
+        monas = self._analisis("Monas", 5.0, 2500)
+        r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "anon-1", "lahan_id": monas["id"],
+                                                   "dana_rp": 1_000_000}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        b = r.json()
+        self.assertEqual(b["mode_input"], "dana")
+        dana = b["dana"]
+        # Rp1 juta / Rp3.000 = 333 kg (hemat), / Rp1.320 = 758 kg (banyak)
+        self.assertEqual(dana["total_kg_rentang"], {"min": 333, "max": 758})
+        self.assertLessEqual(dana["ph_baru_rentang"]["min"], dana["ph_baru_rentang"]["max"])
+        self.assertGreater(dana["ph_baru_rentang"]["min"], 5.0)
+        self.assertEqual(b["ph_baru"], dana["ph_baru_rentang"]["min"])
+        self.assertTrue(any("Rp1.000.000" in c for c in b["catatan"]))
+        # kalsit belum punya harga -> pesan jelas
+        r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "anon-1", "lahan_id": monas["id"],
+                                                   "dana_rp": 1_000_000, "jenis_kapur": "kalsit"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        # dua mode sekaligus ditolak
+        r = self.api.post("/api/simulasi/kapur/", {"anonymous_id": "anon-1", "lahan_id": monas["id"],
+                                                   "dana_rp": 1_000_000, "target_ph": 6}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_riwayat_penanaman(self):
+        lahan = self._analisis("Monas", 5.0, 2500)
+        r = self.api.patch(f"/api/lahan/{lahan['id']}/?anonymous_id=anon-1", {"status": "panen"}, format="json")
+        self.assertEqual(r.json()["tanggal_selesai"], date.today().isoformat())
+        aktif = self.api.get("/api/lahan/?anonymous_id=anon-1&status=aktif").json()
+        selesai = self.api.get("/api/lahan/?anonymous_id=anon-1&status=selesai").json()
+        self.assertEqual((len(aktif), len(selesai)), (0, 1))
+        self.assertEqual(self.api.delete(f"/api/lahan/{lahan['id']}/?anonymous_id=anon-1").status_code, 204)
+
+
+class CatatanFeTes(RevisiDosenTes):
+    """Catatan FE (23 Okt 2026)."""
+
+    KOSONG = {k: None for k in ("ph", "sand", "silt", "clay", "nitrogen", "organic_carbon",
+                                "ph_q05", "ph_q95", "tekstur_kelas")}
+
+    def _rek(self, **uji):
+        with patch(P_IKLIM, return_value=IKLIM), patch(P_SAT, return_value=SATELIT), \
+                patch(P_TANAH, side_effect=GAGAL):
+            return self.api.post("/api/recommend/", self.body(**({"uji_tanah": uji} if uji else {})),
+                                 format="json")
+
+    def test_butuh_input_presisi(self):
+        r = self._rek(ph=5.0)
+        self.assertEqual(r.status_code, 422)
+        self.assertEqual(r.json()["butuh_input"], ["tekstur_kelas"])
+        r = self._rek(tekstur_kelas="liat")
+        self.assertEqual(r.json()["butuh_input"], ["ph"])
+        r = self._rek()
+        self.assertEqual(r.json()["butuh_input"], ["ph", "tekstur_kelas"])
+
+    def test_perkiraan_wilayah_kepercayaan_rendah(self):
+        wilayah = dict(TANAH, ph_q05=None, ph_q95=None, _perkiraan_wilayah_km=5.0)
+        wilayah.pop("tekstur_kelas")
+        with patch("recommendation.services.apis.gee.kredensial_tersedia", return_value=True), \
+                patch("recommendation.services.apis.gee.fetch_tanah", return_value=dict(self.KOSONG)), \
+                patch("recommendation.services.apis.gee.fetch_tanah_wilayah", return_value=wilayah), \
+                patch(P_TANAH, return_value=dict(self.KOSONG)), \
+                patch(P_IKLIM, return_value=IKLIM), patch(P_SAT, return_value=SATELIT):
+            r = self.api.post("/api/recommend/", self.body(), format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        rek = r.json()["recommendation"]
+        self.assertEqual(rek["kondisi_lahan"]["sumber_data"]["ph"], "perkiraan_wilayah")
+        self.assertTrue(all(x["tingkat_kepercayaan"] == "Rendah" for x in rek["rekomendasi"]))
+        self.assertTrue(any("wilayah sekitar 5 km" in c for c in rek["kondisi_lahan"]["catatan_data"]))
+
+    def test_hapus_riwayat_hapus_lahan_simpan_feedback(self):
+        from .models import FeedbackPengguna, LahanTanam
+        lahan = self._analisis("Monas", 5.0, 2500)
+        self.api.post("/api/feedback/", {"anonymous_id": "anon-1", "jenis": "aplikasi", "lahan_id": lahan["id"],
+                                         "komentar": "oke"}, format="json")
+        r = self.api.delete(f"/api/riwayat/{lahan['riwayat_id']}/?anonymous_id=anon-1")
+        self.assertEqual(r.status_code, 204)
+        self.assertFalse(LahanTanam.objects.filter(pk=lahan["id"]).exists())
+        fb = FeedbackPengguna.objects.get()
+        self.assertEqual((fb.lahan_id, fb.crop_slug), (None, lahan["crop_slug"]))
+
+    def test_hasil_panen_tersambung_ke_lahan(self):
+        lahan = self._analisis("Monas", 5.0, 2500)
+        r = self.api.post("/api/feedback/", {"anonymous_id": "anon-1", "jenis": "hasil_panen",
+                                             "lahan_id": lahan["id"], "hasil": "baik", "hasil_panen_kg": 1500},
+                          format="json")
+        self.assertEqual(r.status_code, 201, r.content)
+        daftar = self.api.get("/api/lahan/?anonymous_id=anon-1").json()   # tanpa filter: tetap ada
+        self.assertEqual(len(daftar), 1)
+        d = daftar[0]
+        self.assertEqual((d["status"], d["tanggal_selesai"]), ("panen", date.today().isoformat()))
+        self.assertEqual(d["hasil_panen"]["kg_per_ha"], 6000)
+        self.assertEqual(d["hasil_panen"]["hasil"], "baik")
+
+    def test_riwayat_list_ada_ph(self):
+        self._analisis("Monas", 5.0, 2500)
+        r = self.api.get("/api/riwayat/?anonymous_id=anon-1").json()
+        item = (r.get("results") if isinstance(r, dict) else r)[0]
+        self.assertEqual(item["ph_tanah"], 5.0)

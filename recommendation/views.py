@@ -113,14 +113,30 @@ def simulasi_pengapuran(request):
     s = SimulasiKapurSerializer(data=request.data)
     s.is_valid(raise_exception=True)
     d = s.validated_data
-    riwayat = None
-    if d.get("riwayat_id"):
+    riwayat, info, lat, lon, luas = None, None, d.get("lat"), d.get("lon"), d.get("luas_lahan_m2")
+    if d.get("lahan_id"):
+        # dari "Lahan Saya": data tanah SELALU milik lahan ini, bukan lahan terakhir yang dibuka
+        lahan = get_object_or_404(LahanTanam.objects.select_related("crop", "rekomendasi__riwayat"),
+                                  pk=d["lahan_id"], anonymous_id=d["anonymous_id"])
+        riwayat = lahan.rekomendasi.riwayat if lahan.rekomendasi_id else None
+        luas = luas or lahan.luas_lahan_m2
+        if riwayat is None:
+            if not (d.get("uji_tanah") or {}).get("ph"):
+                return galat("Lahan ini belum punya data tanah. Isi pH tanah untuk simulasi.", 409,
+                             status="perlu_input", butuh_input=["ph"])
+            lat, lon = lahan.lat, lahan.lon
+        info = {"lahan_id": lahan.id, "riwayat_id": riwayat.id if riwayat else None,
+                "nama": lahan.nama or f"Lahan {lahan.crop.nama}", "nama_tanaman": lahan.crop.nama,
+                "luas_lahan_m2": luas}
+    elif d.get("riwayat_id"):
         riwayat = get_object_or_404(RiwayatPencarian, pk=d["riwayat_id"], anonymous_id=d["anonymous_id"])
+        info = {"lahan_id": None, "riwayat_id": riwayat.id, "nama": riwayat.nama_lokasi,
+                "nama_tanaman": None, "luas_lahan_m2": luas or riwayat.luas_lahan_m2}
     try:
         return Response(simulasi_kapur(
-            riwayat=riwayat, uji_tanah=d.get("uji_tanah"), lat=d.get("lat"), lon=d.get("lon"),
-            dosis_ton_ha=d.get("dosis_ton_ha"), target_ph=d.get("target_ph"),
-            jenis_kapur=d["jenis_kapur"], luas_lahan_m2=d.get("luas_lahan_m2")))
+            riwayat=riwayat, uji_tanah=d.get("uji_tanah"), lat=lat, lon=lon,
+            dosis_ton_ha=d.get("dosis_ton_ha"), target_ph=d.get("target_ph"), dana_rp=d.get("dana_rp"),
+            jenis_kapur=d["jenis_kapur"], luas_lahan_m2=luas, info_lahan=info))
     except PengapuranBelumTersedia:
         return galat("Fitur simulasi kapur segera hadir.", 501, status="belum_tersedia")
     except RiwayatTidakLengkap as e:
@@ -173,6 +189,13 @@ class RiwayatDeleteView(DestroyAPIView):
     def get_queryset(self):
         return RiwayatPencarian.objects.filter(anonymous_id=self.request.query_params.get('anonymous_id'))
 
+    def perform_destroy(self, riwayat):
+        # Pemantauan tanaman dari riwayat ini ikut dihapus. Feedback tetap disimpan
+        # (referensi lahan/rekomendasi jadi null, tanaman disalin ke crop_slug);
+        # log usability tidak terkait riwayat.
+        LahanTanam.objects.filter(rekomendasi__riwayat=riwayat).delete()
+        riwayat.delete()
+
 
 @api_view(["GET"])
 def riwayat_detail(request, pk):
@@ -206,9 +229,13 @@ def lahan_list(request):
     aid, err = _wajib_anonymous_id(request)
     if err:
         return err
-    qs = LahanTanam.objects.filter(anonymous_id=aid).select_related("crop", "rekomendasi")
-    if request.query_params.get("status"):
-        qs = qs.filter(status=request.query_params["status"])
+    qs = (LahanTanam.objects.filter(anonymous_id=aid)
+          .select_related("crop", "rekomendasi").prefetch_related("feedback"))
+    st = request.query_params.get("status")
+    if st == "selesai":            # riwayat penanaman: panen / gagal / dihentikan
+        qs = qs.exclude(status="aktif")
+    elif st:
+        qs = qs.filter(status=st)
     return Response(LahanTanamSerializer(qs, many=True).data)
 
 

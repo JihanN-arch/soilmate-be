@@ -1,3 +1,4 @@
+from django.utils import timezone as _tz
 from rest_framework import serializers
 
 from .ml.ml_model import get_profile
@@ -7,7 +8,15 @@ from .models.riwayat_models import RiwayatPencarian, RiwayatRekomendasi
 from .services.data_tanah import normalisasi_tekstur
 
 
+def timezone_tanggal(dt):
+    return _tz.localtime(dt).date().isoformat()
+
+
 # ---------------------------------------------------------------- input
+TEKSTUR_TIDAK_TAHU = {"tidak tahu", "tidak_tahu", "tidak-tahu", "tidak tahu / lewati", "lewati",
+                      "skip", "unknown", "none", "null", "-"}
+
+
 class UjiTanahSerializer(serializers.Serializer):
     """Hasil uji tanah dari pH meter, PUTK, atau laboratorium. Semua opsional,
     tapi minimal salah satu dari pH / tekstur harus ada."""
@@ -25,8 +34,8 @@ class UjiTanahSerializer(serializers.Serializer):
     tanggal_uji = serializers.DateField(required=False, allow_null=True)
 
     def validate_tekstur_kelas(self, nilai):
-        if not nilai:
-            return None
+        if not nilai or str(nilai).strip().lower() in TEKSTUR_TIDAK_TAHU:
+            return None   # "Tidak tahu / lewati" -> tekstur diambil dari SoilGrids
         if normalisasi_tekstur(nilai) is None:
             raise serializers.ValidationError("Kelas tekstur tidak dikenal.")
         return nilai
@@ -38,11 +47,18 @@ class UjiTanahSerializer(serializers.Serializer):
                 raise serializers.ValidationError("sand, silt, dan clay harus diisi ketiganya.")
             if not 95 <= sum(fraksi) <= 105:
                 raise serializers.ValidationError("Jumlah sand + silt + clay harus sekitar 100%.")
-        if d.get("ph") is None and not d.get("tekstur_kelas") and fraksi[0] is None:
-            raise serializers.ValidationError("Isi minimal pH atau tekstur tanah.")
+        # Form uji tanah yang dibiarkan kosong / "tidak tahu" = tidak ada uji tanah (bukan error).
         if d.get("tanggal_uji"):
             d["tanggal_uji"] = d["tanggal_uji"].isoformat()  # agar aman disimpan di JSONField
         return d
+
+
+def uji_tanah_atau_none(nilai):
+    """Form uji tanah yang tidak berisi angka apa pun dianggap tidak diisi."""
+    if not nilai:
+        return None
+    kunci = ("ph", "tekstur_kelas", "sand", "silt", "clay", "c_organik_persen", "nitrogen_persen")
+    return nilai if any(nilai.get(k) not in (None, "") for k in kunci) else None
 
 
 class RecommendRequestSerializer(serializers.Serializer):
@@ -56,6 +72,9 @@ class RecommendRequestSerializer(serializers.Serializer):
     # luas dalam m2 (FE yang mengonversi dari ha / are / bata / tumbak)
     luas_lahan_m2 = serializers.FloatField(min_value=1, max_value=10_000_000,
                                            required=False, allow_null=True)
+
+    def validate_uji_tanah(self, nilai):
+        return uji_tanah_atau_none(nilai)
 
 
 class LahanTanamCreateSerializer(serializers.Serializer):
@@ -93,22 +112,29 @@ class LahanTanamCreateSerializer(serializers.Serializer):
 
 
 class SimulasiKapurSerializer(serializers.Serializer):
-    """Mode 1: riwayat_id. Mode 2: uji_tanah (minimal ph), lat/lon opsional."""
+    """Mode 1: lahan_id (dari Lahan Saya) atau riwayat_id. Mode 2: uji_tanah (minimal ph),
+    lat/lon opsional. Pilih satu: target_ph, dosis_ton_ha, atau dana_rp."""
 
     anonymous_id = serializers.CharField(max_length=100)
+    lahan_id = serializers.IntegerField(required=False, allow_null=True)
     riwayat_id = serializers.IntegerField(required=False, allow_null=True)
     uji_tanah = UjiTanahSerializer(required=False, allow_null=True)
     lat = serializers.FloatField(min_value=-11, max_value=6, required=False, allow_null=True)
     lon = serializers.FloatField(min_value=95, max_value=141, required=False, allow_null=True)
     dosis_ton_ha = serializers.FloatField(min_value=0, max_value=20, required=False, allow_null=True)
     target_ph = serializers.FloatField(min_value=4.0, max_value=7.5, required=False, allow_null=True)
+    dana_rp = serializers.IntegerField(min_value=1000, max_value=10_000_000_000, required=False, allow_null=True)
     jenis_kapur = serializers.ChoiceField(choices=["dolomit", "kalsit", "kapur_tohor"], default="dolomit")
     luas_lahan_m2 = serializers.FloatField(min_value=1, max_value=10_000_000, required=False, allow_null=True)
 
+    def validate_uji_tanah(self, nilai):
+        return uji_tanah_atau_none(nilai)
+
     def validate(self, d):
-        if (d.get("dosis_ton_ha") is None) == (d.get("target_ph") is None):
-            raise serializers.ValidationError("Isi salah satu: dosis kapur atau target pH.")
-        if not d.get("riwayat_id") and (d.get("uji_tanah") or {}).get("ph") is None:
+        terisi = [k for k in ("dosis_ton_ha", "target_ph", "dana_rp") if d.get(k) is not None]
+        if len(terisi) != 1:
+            raise serializers.ValidationError("Isi salah satu: target pH, jumlah kapur, atau dana.")
+        if not (d.get("riwayat_id") or d.get("lahan_id")) and (d.get("uji_tanah") or {}).get("ph") is None:
             raise serializers.ValidationError(
                 "Pilih lahan yang sudah dianalisis, atau isi pH tanah sendiri.")
         if (d.get("lat") is None) != (d.get("lon") is None):
@@ -136,6 +162,20 @@ class FeedbackSerializer(serializers.ModelSerializer):
         if d.get("lahan") and d["lahan"].anonymous_id != aid:
             raise serializers.ValidationError({"lahan_id": "Tidak ditemukan."})
         return d
+
+    def create(self, d):
+        from django.utils import timezone
+        lahan, rek = d.get("lahan"), d.get("rekomendasi")
+        d["crop_slug"] = lahan.crop_id if lahan else (rek.crop_id if rek else None)
+        if lahan and d.get("luas_lahan_m2") is None:
+            d["luas_lahan_m2"] = lahan.luas_lahan_m2
+        fb = super().create(d)
+        # laporan hasil panen menutup lahan dan memindahkannya ke riwayat tanam
+        if d["jenis"] == "hasil_panen" and lahan and lahan.status == "aktif":
+            lahan.status = "gagal" if d.get("hasil") == "gagal" else "panen"
+            lahan.tanggal_selesai = timezone.localdate()
+            lahan.save(update_fields=["status", "tanggal_selesai"])
+        return fb
 
 
 class UsabilityEventSerializer(serializers.ModelSerializer):
@@ -251,6 +291,7 @@ class LahanTanamSerializer(serializers.ModelSerializer):
     nama_tanaman = serializers.CharField(source="crop.nama", read_only=True)
     crop_slug = serializers.CharField(source="crop_id", read_only=True)
     nama_lokasi = serializers.CharField(source="nama", read_only=True)
+    nama_tampilan = serializers.SerializerMethodField()
     rekomendasi_id = serializers.IntegerField(read_only=True)
     riwayat_id = serializers.SerializerMethodField()
     hari_setelah_tanam = serializers.SerializerMethodField()
@@ -260,17 +301,41 @@ class LahanTanamSerializer(serializers.ModelSerializer):
     hari_menuju_tanam = serializers.SerializerMethodField()
     jumlah_citra_setelah_tanam = serializers.SerializerMethodField()
     grafik_siap = serializers.SerializerMethodField()
+    hasil_panen = serializers.SerializerMethodField()
 
     class Meta:
         model = LahanTanam
-        fields = ["id", "nama", "nama_lokasi", "crop", "crop_slug", "crop_nama", "nama_tanaman",
+        fields = ["id", "nama", "nama_lokasi", "nama_tampilan", "crop", "crop_slug", "crop_nama", "nama_tanaman",
                   "rekomendasi", "rekomendasi_id", "riwayat_id", "lat", "lon", "radius_m",
                   "tanggal_tanam", "hari_setelah_tanam", "luas_lahan_m2", "status", "kesehatan", "peringatan",
                   "ndvi_terbaru", "terakhir_dipantau", "dibuat_pada",
-                  "pesan_status", "hari_menuju_tanam", "jumlah_citra_setelah_tanam", "grafik_siap"]
+                  "pesan_status", "hari_menuju_tanam", "jumlah_citra_setelah_tanam", "grafik_siap",
+                  "tanggal_selesai", "hasil_panen"]
         # yang boleh diubah lewat PATCH: nama, tanggal_tanam, luas_lahan_m2, status
         read_only_fields = ["crop", "rekomendasi", "lat", "lon", "radius_m", "kesehatan",
-                            "peringatan", "terakhir_dipantau", "dibuat_pada"]
+                            "peringatan", "terakhir_dipantau", "dibuat_pada", "tanggal_selesai"]
+
+    def get_hasil_panen(self, obj):
+        """Laporan hasil panen terakhir untuk lahan ini (dari /api/feedback/), atau None."""
+        fb = next((f for f in sorted(obj.feedback.all(), key=lambda f: f.dibuat_pada, reverse=True)
+                   if f.jenis == "hasil_panen"), None)
+        if fb is None:
+            return None
+        luas = fb.luas_lahan_m2 or obj.luas_lahan_m2
+        return {"hasil": fb.hasil, "hasil_panen_kg": fb.hasil_panen_kg, "luas_lahan_m2": luas,
+                "kg_per_ha": (round(fb.hasil_panen_kg / luas * 10_000) if fb.hasil_panen_kg and luas else None),
+                "komentar": fb.komentar, "tanggal_lapor": timezone_tanggal(fb.dibuat_pada)}
+
+    def get_nama_tampilan(self, obj):
+        """Judul untuk halaman detail lahan; tidak pernah kosong."""
+        return obj.nama or f"Lahan {obj.crop.nama}"
+
+    def update(self, obj, data):
+        from django.utils import timezone
+        baru = data.get("status")
+        if baru and baru != obj.status:
+            obj.tanggal_selesai = None if baru == "aktif" else timezone.localdate()
+        return super().update(obj, data)
 
     def get_riwayat_id(self, obj):
         return obj.rekomendasi.riwayat_id if obj.rekomendasi_id else None
