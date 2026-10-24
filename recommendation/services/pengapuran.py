@@ -214,6 +214,7 @@ def simulasi_kapur(riwayat=None, uji_tanah=None, lat=None, lon=None, dosis_ton_h
             "dosis_ton_ha_rentang": {"min": round(hemat, 2), "max": round(banyak, 2)},
             "total_kg_rentang": {"min": kg(hemat), "max": kg(banyak)},
             "ph_baru_rentang": {"min": round(ph_baru, 2), "max": round(ph_banyak, 2)},
+            "dibatasi": terpotong,   # True = dana melebihi dosis wajar, dipotong ke BATAS_DOSIS
         }
         catatan_data.append(
             f"Dengan dana Rp{dana_rp:,}".replace(",", ".") +

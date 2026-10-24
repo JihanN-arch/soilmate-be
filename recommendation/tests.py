@@ -831,6 +831,7 @@ class RevisiDosenTes(DasarTes):
         dana = b["dana"]
         # Rp1 juta / Rp3.000 = 333 kg (hemat), / Rp1.320 = 758 kg (banyak)
         self.assertEqual(dana["total_kg_rentang"], {"min": 333, "max": 758})
+        self.assertFalse(dana["dibatasi"])
         self.assertLessEqual(dana["ph_baru_rentang"]["min"], dana["ph_baru_rentang"]["max"])
         self.assertGreater(dana["ph_baru_rentang"]["min"], 5.0)
         self.assertEqual(b["ph_baru"], dana["ph_baru_rentang"]["min"])
